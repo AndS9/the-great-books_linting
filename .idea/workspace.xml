@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e9d0a24e-6ac0-4f6f-a570-2adc9406a5be" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="consul-config" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Polycarpus1488"
+  }
+}]]></component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="2.288620918019813" />
+      <entry key="MS500" value="5.898012055070769" />
+      <entry key="S2" value="11.523589693485766" />
+      <entry key="S5" value="16.058852748029373" />
+      <entry key="S10" value="18.62418077890435" />
+      <entry key="S30" value="23.814199985004414" />
+      <entry key="S60" value="33.899058822187996" />
+      <entry key="M2" value="53.61107979297864" />
+      <entry key="M5" value="107.9031321423954" />
+      <entry key="M10" value="178.2603736265449" />
+      <entry key="M15" value="222.13930308683004" />
+      <entry key="M30" value="284.9093784408573" />
+      <entry key="H1" value="326.1557501704641" />
+      <entry key="H2" value="349.8896039502417" />
+      <entry key="H4" value="362.63217370190193" />
+      <entry key="D1" value="373.727218399012" />
+      <entry key="W1" value="375.67420090168156" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="6.463615433246695E-183" />
+      <entry key="S5" value="1.3310372316789226E-73" />
+      <entry key="S10" value="3.648338295277635E-37" />
+      <entry key="S30" value="7.145484814715293E-13" />
+      <entry key="S60" value="8.453096955977273E-7" />
+      <entry key="M2" value="9.194072523086372E-4" />
+      <entry key="M5" value="0.06101030134161165" />
+      <entry key="M10" value="0.24700263428071317" />
+      <entry key="M15" value="0.39367187618986743" />
+      <entry key="M30" value="0.6274327662705094" />
+      <entry key="H1" value="0.7921065371971836" />
+      <entry key="H2" value="0.8900036725751128" />
+      <entry key="H4" value="0.9434000596645707" />
+      <entry key="D1" value="0.9903361901583065" />
+      <entry key="W1" value="0.9986137035862582" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="2.2637922741915935" />
+      <entry key="MS500" value="5.885210905359665" />
+      <entry key="S2" value="11.5175158049179" />
+      <entry key="S5" value="16.05549509769477" />
+      <entry key="S10" value="18.62223942815833" />
+      <entry key="S30" value="23.813378177725525" />
+      <entry key="S60" value="33.89847018994983" />
+      <entry key="M2" value="53.61144883987727" />
+      <entry key="M5" value="107.96296519145716" />
+      <entry key="M10" value="178.50576799164875" />
+      <entry key="M15" value="222.53142375042816" />
+      <entry key="M30" value="285.53567468024636" />
+      <entry key="H1" value="326.9471659899058" />
+      <entry key="H2" value="350.77922651622083" />
+      <entry key="H4" value="363.5753735452896" />
+      <entry key="D1" value="374.717519811733" />
+      <entry key="W1" value="376.67280960168785" />
+    </decayedShown>
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "node.js.selected.package.tslint": "(autodetect)",
+    "settings.editor.selected.configurable": "vcs.Git"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <servers />
+  </component>
+</project>
