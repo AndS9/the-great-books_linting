@@ -5,7 +5,7 @@ from .extensions import db
 class Role(db.Model):
     __tablename__ = "roles"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
     role_name = db.Column(db.String(50), unique=True, nullable=False)
 
 
@@ -27,6 +27,7 @@ class House(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
+    motto = db.Column(db.String(100))
     lord_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
 
