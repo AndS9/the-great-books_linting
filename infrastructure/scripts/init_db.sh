@@ -5,7 +5,7 @@ cd /tmp
 DB_NAME="books"
 DB_USER="username"
 DB_PASS="password"
-ALLOWED_NET="${ALLOWED_NET:-192.168.56.0/24}"
+ALLOWED_IPS=("192.168.56.2/32" "192.168.56.3/32")
 
 echo "Встановлення PostgreSQL..."
 apt-get update -y
@@ -32,8 +32,10 @@ HBA_CONF=$(sudo -u postgres psql -t -P format=unaligned -c "SHOW hba_file;")
 
 sed -i "s/^#*listen_addresses\s*=.*/listen_addresses = '*'/" "$PG_CONF"
 
-HBA_RULE="host    all             all             ${ALLOWED_NET}         scram-sha-256"
-grep -qxF "$HBA_RULE" "$HBA_CONF" || echo "$HBA_RULE" >> "$HBA_CONF"
+for ip in "${ALLOWED_IPS[@]}"; do # allowed IPs processing through loop so when we create new app replicas we can just add their IPs to the list and run this script again
+  HBA_RULE="host    all             all             ${ip}         scram-sha-256"
+  grep -qxF "$HBA_RULE" "$HBA_CONF" || echo "$HBA_RULE" >> "$HBA_CONF"
+done
 
 echo "Перезапуск PostgreSQL..." # restarting for applying settings changes
 systemctl restart postgresql
