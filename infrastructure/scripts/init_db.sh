@@ -5,6 +5,7 @@ cd /tmp
 DB_NAME="books"
 DB_USER="username"
 DB_PASS="password"
+ALLOWED_NET="${ALLOWED_NET:-192.168.56.0/24}"
 
 echo "Встановлення PostgreSQL..."
 apt-get update -y
@@ -25,4 +26,16 @@ echo "Налаштування прав..."
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};"
 
 sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};"
+
+PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c "SHOW config_file;")
+HBA_CONF=$(sudo -u postgres psql -t -P format=unaligned -c "SHOW hba_file;")
+
+sed -i "s/^#*listen_addresses\s*=.*/listen_addresses = '*'/" "$PG_CONF"
+
+HBA_RULE="host    all             all             ${ALLOWED_NET}         scram-sha-256"
+grep -qxF "$HBA_RULE" "$HBA_CONF" || echo "$HBA_RULE" >> "$HBA_CONF"
+
+echo "Перезапуск PostgreSQL..." # restarting for applying settings changes
+systemctl restart postgresql
+
 
