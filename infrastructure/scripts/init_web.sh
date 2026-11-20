@@ -42,10 +42,6 @@ if [ "$(hostname)" = "app1" ]; then
     done
 
     echo "Запуск міграцій та наповнення БД на app1..."
-    if [ ! -d "${APP_DIR}/migrations" ]; then
-        "${APP_DIR}/venv/bin/flask" db init
-        "${APP_DIR}/venv/bin/flask" db migrate -m "Initial migration"
-    fi
     "${APP_DIR}/venv/bin/flask" db upgrade
     "${APP_DIR}/venv/bin/flask" seed-db
 else
