@@ -1,12 +1,23 @@
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
 from .models import User, Role, House, Stat, Session
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
+
+@web_ui.before_request
+def require_auth():
+    if request.path == "/login" or request.path.startswith("/static"):
+        return None
+    token = request.cookies.get("token")
+    if not token:
+        return redirect(url_for("web_ui.login"))
+    session_obj = Session.query.filter_by(id=token).first()
+    if not session_obj or session_obj.expires_at <= datetime.utcnow():
+        return redirect(url_for("web_ui.login"))
 
 @web_ui.route("/")
 @web_ui.route("/houses")

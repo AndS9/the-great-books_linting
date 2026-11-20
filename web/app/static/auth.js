@@ -21,6 +21,7 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         localStorage.setItem("token", res.token);
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Lax`;
         await checkAuth();
         showAlert("Welcome back to the realm, " + res.user.username + "!");
         setTimeout(() => {
@@ -45,6 +46,7 @@ async function handleRegister(e) {
             body: JSON.stringify({ username, password, role_id, house_id })
         });
         localStorage.setItem("token", res.token);
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Lax`;
         await checkAuth();
         showAlert("Oath sworn! Account created for " + res.user.username + ".");
         setTimeout(() => {

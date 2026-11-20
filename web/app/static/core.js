@@ -140,6 +140,7 @@ async function logout() {
         await apiFetch("/auth/logout", { method: "POST" });
     } catch (_) { }
     localStorage.removeItem("token");
+    document.cookie = "token=; path=/; max-age=0";
     currentUser = null;
     updateNavUI(null);
     showAlert("You have left the realm.");
