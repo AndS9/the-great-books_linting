@@ -1,13 +1,18 @@
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
 from .models import User, Role, House, Stat, Session
 
-api = Blueprint("api", __name__, url_prefix="/api")
+web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
+@web_ui.route("/")
+def index():
+    return render_template("index.html")
+
+api = Blueprint("api", __name__, url_prefix="/api")
 
 def login_required(f):
     @wraps(f)
@@ -31,7 +36,7 @@ def login_required(f):
 
 @api.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({"status": "ok", "service": "the-great-books-backend"}), 200
+    return jsonify({"status": "ok", "service": "the-great-books-web"}), 200
 
 
 @api.route("/roles", methods=["GET"])

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="/opt/backend"
+APP_DIR="/opt/web"
 DB_HOST="192.168.56.4"
 DB_PORT="5432"
 DB_NAME="books"
@@ -16,8 +16,8 @@ apt-get install -y python3 python3-pip python3-venv libpq-dev
 echo "Перенесення файлів бекенду..."
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}"
-cp -r /tmp/backend/. "${APP_DIR}/"
-rm -rf /tmp/backend
+cp -r /tmp/web/. "${APP_DIR}/"
+rm -rf /tmp/web
 
 echo "Налаштування віртуального середовища..."
 python3 -m venv "${APP_DIR}/venv"
@@ -34,14 +34,26 @@ EOF
 echo "Запуск міграцій..."
 cd "${APP_DIR}"
 export FLASK_APP=run.py
-if [ ! -d "${APP_DIR}/migrations" ]; then
-    "${APP_DIR}/venv/bin/flask" db init
-    "${APP_DIR}/venv/bin/flask" db migrate -m "Initial migration"
+
+if [ "$(hostname)" = "app1" ]; then
+    echo "Очікування доступності бази даних ${DB_HOST}:${DB_PORT}..."
+    until "${APP_DIR}/venv/bin/python" -c "import socket; s = socket.socket(); s.connect(('${DB_HOST}', int('${DB_PORT}'))); s.close()" 2>/dev/null; do
+        sleep 1
+    done
+
+    echo "Запуск міграцій та наповнення БД на app1..."
+    if [ ! -d "${APP_DIR}/migrations" ]; then
+        "${APP_DIR}/venv/bin/flask" db init
+        "${APP_DIR}/venv/bin/flask" db migrate -m "Initial migration"
+    fi
+    "${APP_DIR}/venv/bin/flask" db upgrade
+    "${APP_DIR}/venv/bin/flask" seed-db
+else
+    echo "Пропуск міграцій для $(hostname) (виконуються тільки на app1)."
 fi
-"${APP_DIR}/venv/bin/flask" db upgrade
 
 echo "Запуск сервісу бекенду..."
-cat <<EOF > /etc/systemd/system/backend.service
+cat <<EOF > /etc/systemd/system/web.service
 [Unit]
 Description=Flask Backend
 After=network.target
@@ -59,5 +71,5 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now backend
-systemctl restart backend
+systemctl enable --now web
+systemctl restart web

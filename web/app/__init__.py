@@ -1,7 +1,7 @@
 from flask import Flask
 from .config import Config
 from .extensions import db, cors, migrate
-from .routes import api
+from .routes import api, web_ui
 from .models import Role, House
 
 
@@ -13,10 +13,12 @@ def create_app():
     migrate.init_app(app, db)
     cors.init_app(app)
     app.register_blueprint(api)
+    app.register_blueprint(web_ui)
 
-    with app.app_context():
-        db.create_all()
+    @app.cli.command("seed-db")
+    def seed_db():
         _seed_initial_data()
+        print("Database seeded successfully.")
 
     return app
 
