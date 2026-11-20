@@ -14,3 +14,7 @@
     <div id="houses-grid" class="houses-grid"></div>
 </section>
 {% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='houses.js') }}"></script>
+{% endblock %}
