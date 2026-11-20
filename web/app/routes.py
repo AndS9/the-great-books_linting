@@ -23,7 +23,7 @@ def login_required(f):
             return jsonify({"error": "Missing session token"}), 401
 
         session_obj = Session.query.filter_by(id=token).first()
-        if not session_obj or session_obj.expires_at < datetime.utcnow():
+        if not session_obj or session_obj.expires_at <= datetime.utcnow():
             return jsonify({"error": "Invalid or expired session"}), 401
 
         current_user = User.query.get(session_obj.user_id)
@@ -152,8 +152,10 @@ def login():
 @login_required
 def logout(current_user):
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    Session.query.filter_by(id=token).delete()
-    db.session.commit()
+    session = Session.query.filter_by(id=token).first()
+    if session:
+        session.expires_at = datetime.utcnow()
+        db.session.commit()
     return jsonify({"message": "Logged out"}), 200
 
 
