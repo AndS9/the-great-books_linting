@@ -12,6 +12,23 @@
         <span class="role-badge" id="houses-count">0 Houses</span>
     </div>
     <div id="houses-grid" class="houses-grid"></div>
+
+    <div id="edit-house-wrapper" class="auth-wrapper hidden" style="margin-top: 2rem;">
+        <form id="edit-house-form" class="auth-form" onsubmit="handleEditHouse(event)">
+            <h2 id="edit-house-title">Edit House Info</h2>
+            <input type="hidden" id="edit-house-id">
+            <label>House Name
+                <input type="text" id="edit-house-name" maxlength="50" required>
+            </label>
+            <label>House Motto
+                <input type="text" id="edit-house-motto" maxlength="100" placeholder="Enter house motto...">
+            </label>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <button type="submit" class="btn-primary" style="flex: 1; margin-top: 0;">Save Changes</button>
+                <button type="button" class="btn-secondary" onclick="closeEditHouseForm()">Cancel</button>
+            </div>
+        </form>
+    </div>
 </section>
 {% endblock %}
 
