@@ -9,8 +9,25 @@ from .models import User, Role, House, Stat, Session
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
 @web_ui.route("/")
+@web_ui.route("/houses")
 def index():
     return render_template("index.html")
+
+@web_ui.route("/knights")
+def knights():
+    return render_template("knights.html")
+
+@web_ui.route("/lords")
+def lords():
+    return render_template("lords.html")
+
+@web_ui.route("/login")
+def login():
+    return render_template("login.html")
+
+@web_ui.route("/profile")
+def profile():
+    return render_template("profile.html")
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
