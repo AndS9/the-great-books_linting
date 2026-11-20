@@ -11,8 +11,8 @@ apt-get install -y nginx curl
 cat > "/etc/nginx/sites-available/${SITE_NAME}" <<'EOF'
 
 upstream the_great_books {
-    server 192.168.56.2:5000 max_fails=3 fail_timeout=10s;
-    server 192.168.56.3:5000 max_fails=3 fail_timeout=10s;
+    server 192.168.56.2:80 max_fails=3 fail_timeout=10s;
+    server 192.168.56.3:80 max_fails=3 fail_timeout=10s;
 }
 
 server {
