@@ -45,6 +45,9 @@ body {
     color: var(--gold);
     cursor: pointer;
     letter-spacing: 0.5px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-links {
@@ -62,6 +65,8 @@ body {
     cursor: pointer;
     font-size: 0.92rem;
     transition: 0.2s;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .nav-btn:hover,
@@ -358,6 +363,9 @@ body {
     cursor: pointer;
     font-size: 0.9rem;
     transition: 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 
 .btn-secondary:hover {

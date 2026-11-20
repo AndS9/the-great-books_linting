@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile — The Great Books{% endblock %}
+
+{% block content %}
+<section id="page-profile" class="page">
+    <div class="profile-card">
+        <div id="prof-banner" class="profile-banner banner-default">
+            <div id="prof-monogram" class="monogram-circle">?</div>
+        </div>
+        <div class="profile-body">
+            <div class="profile-top">
+                <div>
+                    <span id="prof-role" class="role-badge">Role</span>
+                    <h2 id="prof-username">Username</h2>
+                    <p id="prof-house" class="house-title">House: None</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <a href="/knights" class="btn-secondary">Book of Knights</a>
+                    <a href="/lords" class="btn-secondary">Book of Lords</a>
+                </div>
+            </div>
+            <p id="prof-motto" class="motto-text"></p>
+
+            <div class="profile-stats">
+                <h3>Combat Attributes</h3>
+                <div class="stat-bars">
+                    <div class="stat-bar-item">
+                        <div class="stat-bar-header">
+                            <span>Strength</span>
+                            <strong id="stat-str">0</strong>
+                        </div>
+                        <div class="progress-track">
+                            <div id="bar-str" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-bar-item">
+                        <div class="stat-bar-header">
+                            <span>Defense</span>
+                            <strong id="stat-def">0</strong>
+                        </div>
+                        <div class="progress-track">
+                            <div id="bar-def" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-bar-item">
+                        <div class="stat-bar-header">
+                            <span>Endurance</span>
+                            <strong id="stat-end">0</strong>
+                        </div>
+                        <div class="progress-track">
+                            <div id="bar-end" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spy-section">
+                <div class="spy-header">
+                    <h3>Spymaster's Daily Whisper (Gossip)</h3>
+                    <span id="gossip-status-pill" class="gossip-pill">Checking...</span>
+                </div>
+                <p id="gossip-desc" class="muted"></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='profile.js') }}"></script>
+{% endblock %}
