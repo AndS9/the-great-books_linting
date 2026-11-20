@@ -92,6 +92,13 @@ ip: 192.168.56.5
 
 # Database Structure
 
+### *After changing the model run this (from /web/ folder):* 
+
+```bash
+flask db migrate -m "[message]" # to save the changes in the migration folder
+flask db upgrade # to apply the changes to the database
+```
+
 ### users
 
 - id - int, primary key
