@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Login & Register — The Great Books{% endblock %}
+
+{% block content %}
+<section id="page-auth" class="page">
+    <div class="auth-wrapper">
+        <div class="auth-tabs">
+            <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
+            <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+            <h2>Enter the Realm</h2>
+            <label>Username
+                <input type="text" id="login-username" required placeholder="e.g. dima">
+            </label>
+            <label>Password
+                <input type="password" id="login-password" required placeholder="••••••••">
+            </label>
+            <button type="submit" class="btn-primary">Sign In</button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+            <h2>Swear Your Oath</h2>
+            <label>Username
+                <input type="text" id="reg-username" required placeholder="e.g. JonSnow">
+            </label>
+            <label>Password
+                <input type="password" id="reg-password" required placeholder="••••••••">
+            </label>
+            <label>Social Role (Title)
+                <select id="reg-role" required>
+                    <option value="">Loading roles...</option>
+                </select>
+            </label>
+            <label>Great House Allegiance
+                <select id="reg-house">
+                    <option value="">No House (Free Rider / Commonfolk)</option>
+                </select>
+            </label>
+            <button type="submit" class="btn-primary">Create Account</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

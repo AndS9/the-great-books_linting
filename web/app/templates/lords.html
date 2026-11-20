@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Book of Lords — The Great Books{% endblock %}
+
+{% block content %}
+<section id="page-lords" class="page">
+    <div class="page-header">
+        <div>
+            <h1>Book of Lords</h1>
+            <p class="subtitle">Noble Bloodlines, Wardens & Rulers of the Seven Kingdoms</p>
+        </div>
+        <div id="user-badge-lords" class="role-badge">Guest (Spectator)</div>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="search-lords" class="search-input" placeholder="Search by lord or noble name..."
+            oninput="renderBook('noble')">
+        <select id="filter-lords" class="filter-select" onchange="renderBook('noble')">
+            <option value="all">All Great Houses</option>
+        </select>
+    </div>
+
+    <div id="notice-lords" class="notice-banner hidden"></div>
+    <div id="grid-lords" class="cards-grid"></div>
+</section>
+{% endblock %}

@@ -26,7 +26,16 @@ let allRealmMembers = [];
 document.addEventListener("DOMContentLoaded", async () => {
     await loadDictionaries();
     await checkAuth();
-    await loadRealmRoster();
+
+    if (document.getElementById("houses-grid")) {
+        renderHousesPage();
+    }
+    if (document.getElementById("prof-username")) {
+        await loadProfile();
+    }
+    if (document.getElementById("grid-knights") || document.getElementById("grid-lords")) {
+        await loadRealmRoster();
+    }
 });
 
 async function apiFetch(endpoint, options = {}) {
@@ -47,16 +56,33 @@ async function apiFetch(endpoint, options = {}) {
 
 function showAlert(message, isError = false) {
     const box = document.getElementById("alert-box");
+    if (!box) return;
     box.textContent = message;
     box.className = isError ? "alert error" : "alert";
     setTimeout(() => box.classList.add("hidden"), 4500);
 }
 
 function showPage(pageName) {
+    const pageRouteMap = {
+        knights: "/knights",
+        lords: "/lords",
+        houses: "/",
+        auth: "/login",
+        profile: "/profile"
+    };
+
+    const targetUrl = pageRouteMap[pageName] || "/";
+    if (window.location.pathname !== targetUrl && !(pageName === "houses" && window.location.pathname === "/")) {
+        window.location.href = targetUrl;
+        return;
+    }
+
     document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
 
-    document.getElementById("page-" + pageName).classList.remove("hidden");
+    const pageEl = document.getElementById("page-" + pageName);
+    if (pageEl) pageEl.classList.remove("hidden");
+
     const navBtn = document.getElementById("nav-" + pageName);
     if (navBtn) navBtn.classList.add("active");
 
@@ -67,10 +93,15 @@ function showPage(pageName) {
 }
 
 function switchAuthTab(tab) {
-    document.getElementById("tab-login").classList.toggle("active", tab === "login");
-    document.getElementById("tab-register").classList.toggle("active", tab === "register");
-    document.getElementById("login-form").classList.toggle("hidden", tab !== "login");
-    document.getElementById("register-form").classList.toggle("hidden", tab !== "register");
+    const tabLogin = document.getElementById("tab-login");
+    const tabRegister = document.getElementById("tab-register");
+    const formLogin = document.getElementById("login-form");
+    const formRegister = document.getElementById("register-form");
+
+    if (tabLogin) tabLogin.classList.toggle("active", tab === "login");
+    if (tabRegister) tabRegister.classList.toggle("active", tab === "register");
+    if (formLogin) formLogin.classList.toggle("hidden", tab !== "login");
+    if (formRegister) formRegister.classList.toggle("hidden", tab !== "register");
 }
 
 function getHouseBannerClass(houseName) {
@@ -102,19 +133,33 @@ async function loadDictionaries() {
         houses.forEach(h => { housesMap[h.id] = h; });
 
         const roleSelect = document.getElementById("reg-role");
-        roleSelect.innerHTML = roles.map(r =>
-            '<option value="' + r.id + '">' + r.role_name.toUpperCase() + '</option>'
-        ).join("");
+        if (roleSelect) {
+            roleSelect.innerHTML = roles.map(r =>
+                '<option value="' + r.id + '">' + r.role_name.toUpperCase() + '</option>'
+            ).join("");
+        }
 
         const houseOptionsHtml = '<option value="all">All Great Houses</option>' +
             houses.map(h => '<option value="' + h.id + '">House ' + h.name + '</option>').join("");
 
-        document.getElementById("filter-knights").innerHTML = houseOptionsHtml;
-        document.getElementById("filter-lords").innerHTML = houseOptionsHtml;
+        const filterKnights = document.getElementById("filter-knights");
+        if (filterKnights) filterKnights.innerHTML = houseOptionsHtml;
+
+        const filterLords = document.getElementById("filter-lords");
+        if (filterLords) filterLords.innerHTML = houseOptionsHtml;
 
         const houseSelect = document.getElementById("reg-house");
-        houseSelect.innerHTML = '<option value="">No House (Free Rider / Commonfolk)</option>' +
-            houses.map(h => '<option value="' + h.id + '">House ' + h.name + '</option>').join("");
+        if (houseSelect) {
+            houseSelect.innerHTML = '<option value="">No House (Free Rider / Commonfolk)</option>' +
+                houses.map(h => '<option value="' + h.id + '">House ' + h.name + '</option>').join("");
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const houseParam = params.get("house");
+        if (houseParam) {
+            if (filterKnights) filterKnights.value = houseParam;
+            if (filterLords) filterLords.value = houseParam;
+        }
     } catch (err) {
         console.warn("Could not load dictionaries:", err.message);
     }
@@ -139,9 +184,12 @@ async function checkAuth() {
 
 function updateNavUI(user) {
     const isLoggedIn = Boolean(user);
-    document.getElementById("nav-profile").classList.toggle("hidden", !isLoggedIn);
-    document.getElementById("nav-logout").classList.toggle("hidden", !isLoggedIn);
-    document.getElementById("nav-auth").classList.toggle("hidden", isLoggedIn);
+    const navProfile = document.getElementById("nav-profile");
+    if (navProfile) navProfile.classList.toggle("hidden", !isLoggedIn);
+    const navLogout = document.getElementById("nav-logout");
+    if (navLogout) navLogout.classList.toggle("hidden", !isLoggedIn);
+    const navAuth = document.getElementById("nav-auth");
+    if (navAuth) navAuth.classList.toggle("hidden", isLoggedIn);
 
     let badgeText = "Guest (Spectator)";
     if (user) {
@@ -150,8 +198,10 @@ function updateNavUI(user) {
         badgeText = user.username + " • " + user.role + " (" + houseLabel + ")";
     }
 
-    document.getElementById("user-badge-knights").textContent = badgeText;
-    document.getElementById("user-badge-lords").textContent = badgeText;
+    const badgeKnights = document.getElementById("user-badge-knights");
+    if (badgeKnights) badgeKnights.textContent = badgeText;
+    const badgeLords = document.getElementById("user-badge-lords");
+    if (badgeLords) badgeLords.textContent = badgeText;
 }
 
 async function handleLogin(e) {
@@ -167,7 +217,9 @@ async function handleLogin(e) {
         localStorage.setItem("token", res.token);
         await checkAuth();
         showAlert("Welcome back to the realm, " + res.user.username + "!");
-        showPage(res.user.role === "noble" ? "lords" : "knights");
+        setTimeout(() => {
+            window.location.href = res.user.role === "noble" ? "/lords" : "/knights";
+        }, 300);
     } catch (err) {
         showAlert(err.message, true);
     }
@@ -189,7 +241,9 @@ async function handleRegister(e) {
         localStorage.setItem("token", res.token);
         await checkAuth();
         showAlert("Oath sworn! Account created for " + res.user.username + ".");
-        showPage("profile");
+        setTimeout(() => {
+            window.location.href = "/profile";
+        }, 300);
     } catch (err) {
         showAlert(err.message, true);
     }
@@ -203,7 +257,9 @@ async function logout() {
     currentUser = null;
     updateNavUI(null);
     showAlert("You have left the realm.");
-    showPage("auth");
+    setTimeout(() => {
+        window.location.href = "/login";
+    }, 300);
 }
 
 function getTodayGossipKey() {
@@ -220,7 +276,13 @@ function getGossipRecord() {
 }
 
 async function loadProfile() {
-    if (!currentUser) return showPage("auth");
+    const profUsername = document.getElementById("prof-username");
+    if (!profUsername) return;
+
+    if (!currentUser) {
+        window.location.href = "/login";
+        return;
+    }
     try {
         const me = await apiFetch("/me");
         currentUser = me;
@@ -228,41 +290,56 @@ async function loadProfile() {
         const houseObj = housesMap[me.house_id];
         const houseName = houseObj ? houseObj.name : null;
 
-        document.getElementById("prof-banner").className = "profile-banner " + getHouseBannerClass(houseName);
-        document.getElementById("prof-monogram").textContent = getInitials(me.username);
-        document.getElementById("prof-username").textContent = me.username;
-        document.getElementById("prof-role").textContent = me.role;
-        document.getElementById("prof-house").textContent = houseName ? "House " + houseName : "Free Rider / Commonfolk";
-        document.getElementById("prof-motto").textContent = houseName && HOUSE_MOTTOS[houseName]
-            ? '"' + HOUSE_MOTTOS[houseName] + '"'
-            : '"Unbowed by titles, forged by steel."';
+        const profBanner = document.getElementById("prof-banner");
+        if (profBanner) profBanner.className = "profile-banner " + getHouseBannerClass(houseName);
+        const profMonogram = document.getElementById("prof-monogram");
+        if (profMonogram) profMonogram.textContent = getInitials(me.username);
+        profUsername.textContent = me.username;
+        const profRole = document.getElementById("prof-role");
+        if (profRole) profRole.textContent = me.role;
+        const profHouse = document.getElementById("prof-house");
+        if (profHouse) profHouse.textContent = houseName ? "House " + houseName : "Free Rider / Commonfolk";
+        const profMotto = document.getElementById("prof-motto");
+        if (profMotto) {
+            profMotto.textContent = houseName && HOUSE_MOTTOS[houseName]
+                ? '"' + HOUSE_MOTTOS[houseName] + '"'
+                : '"Unbowed by titles, forged by steel."';
+        }
 
         const str = me.stats.strength || 0;
         const def = me.stats.defense || 0;
         const end = me.stats.endurance || 0;
 
-        document.getElementById("stat-str").textContent = str;
-        document.getElementById("stat-def").textContent = def;
-        document.getElementById("stat-end").textContent = end;
+        const statStr = document.getElementById("stat-str");
+        if (statStr) statStr.textContent = str;
+        const statDef = document.getElementById("stat-def");
+        if (statDef) statDef.textContent = def;
+        const statEnd = document.getElementById("stat-end");
+        if (statEnd) statEnd.textContent = end;
 
-        document.getElementById("bar-str").style.width = Math.min(100, str * 5) + "%";
-        document.getElementById("bar-def").style.width = Math.min(100, def * 5) + "%";
-        document.getElementById("bar-end").style.width = Math.min(100, end * 5) + "%";
+        const barStr = document.getElementById("bar-str");
+        if (barStr) barStr.style.width = Math.min(100, str * 5) + "%";
+        const barDef = document.getElementById("bar-def");
+        if (barDef) barDef.style.width = Math.min(100, def * 5) + "%";
+        const barEnd = document.getElementById("bar-end");
+        if (barEnd) barEnd.style.width = Math.min(100, end * 5) + "%";
 
         const pill = document.getElementById("gossip-status-pill");
         const desc = document.getElementById("gossip-desc");
 
-        if (me.role !== "knight") {
-            pill.textContent = "Not Available";
-            desc.textContent = "Only sworn Knights can dispatch spies for daily Gossip.";
-        } else {
-            const used = getGossipRecord();
-            if (used) {
-                pill.textContent = "Used Today";
-                desc.textContent = "Today's spy report was requested for " + used.target + ". Next whisper available tomorrow.";
+        if (pill && desc) {
+            if (me.role !== "knight") {
+                pill.textContent = "Not Available";
+                desc.textContent = "Only sworn Knights can dispatch spies for daily Gossip.";
             } else {
-                pill.textContent = "1 Whisper Ready";
-                desc.textContent = "You may uncover hidden combat stats of 1 rival House warrior today from the Book of Knights or Book of Lords.";
+                const used = getGossipRecord();
+                if (used) {
+                    pill.textContent = "Used Today";
+                    desc.textContent = "Today's spy report was requested for " + used.target + ". Next whisper available tomorrow.";
+                } else {
+                    pill.textContent = "1 Whisper Ready";
+                    desc.textContent = "You may uncover hidden combat stats of 1 rival House warrior today from the Book of Knights or Book of Lords.";
+                }
             }
         }
     } catch (err) {
@@ -282,7 +359,8 @@ async function loadRealmRoster(activeBookRole = "knight") {
                 house_id: currentUser.house_id,
                 from_db: true
             }));
-            noticeText = "Sworn to House " + housesMap[currentUser.house_id].name + ": viewing live house members from database alongside rival houses.";
+            const curHouseName = housesMap[currentUser.house_id] ? housesMap[currentUser.house_id].name : "your House";
+            noticeText = "Sworn to House " + curHouseName + ": viewing live house members from database alongside rival houses.";
         } catch (err) {
             console.warn(err.message);
         }
@@ -294,8 +372,10 @@ async function loadRealmRoster(activeBookRole = "knight") {
 
     ["notice-knights", "notice-lords"].forEach(id => {
         const el = document.getElementById(id);
-        el.classList.remove("hidden");
-        el.textContent = noticeText;
+        if (el) {
+            el.classList.remove("hidden");
+            el.textContent = noticeText;
+        }
     });
 
     const seedWithIds = REALM_ROSTER_SEED.map(item => {
@@ -314,8 +394,8 @@ async function loadRealmRoster(activeBookRole = "knight") {
     });
 
     allRealmMembers = combined;
-    renderBook("knight");
-    renderBook("noble");
+    if (document.getElementById("grid-knights")) renderBook("knight");
+    if (document.getElementById("grid-lords")) renderBook("noble");
 }
 
 function renderBook(targetRole) {
@@ -325,8 +405,12 @@ function renderBook(targetRole) {
     const filterId = isKnightBook ? "filter-knights" : "filter-lords";
 
     const grid = document.getElementById(gridId);
-    const query = document.getElementById(searchId).value.trim().toLowerCase();
-    const houseFilter = document.getElementById(filterId).value;
+    if (!grid) return;
+
+    const searchEl = document.getElementById(searchId);
+    const filterEl = document.getElementById(filterId);
+    const query = searchEl ? searchEl.value.trim().toLowerCase() : "";
+    const houseFilter = filterEl ? filterEl.value : "all";
 
     const filtered = allRealmMembers.filter(m => {
         const matchesRole = m.role && m.role.toLowerCase() === targetRole;
@@ -410,7 +494,9 @@ function triggerGossip(targetName) {
 
 function renderHousesPage() {
     const grid = document.getElementById("houses-grid");
-    document.getElementById("houses-count").textContent = housesList.length + " Great Houses";
+    if (!grid) return;
+    const countEl = document.getElementById("houses-count");
+    if (countEl) countEl.textContent = housesList.length + " Great Houses";
 
     grid.innerHTML = housesList.map(h => {
         const bannerClass = getHouseBannerClass(h.name);
@@ -436,8 +522,5 @@ function renderHousesPage() {
 }
 
 function filterHouseInBook(bookPage, houseId) {
-    showPage(bookPage);
-    const filterId = bookPage === "knights" ? "filter-knights" : "filter-lords";
-    document.getElementById(filterId).value = String(houseId);
-    renderBook(bookPage === "knights" ? "knight" : "noble");
+    window.location.href = "/" + bookPage + "?house=" + houseId;
 }
