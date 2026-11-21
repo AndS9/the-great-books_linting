@@ -4,7 +4,6 @@ set -euo pipefail
 
 SITE_NAME="the-great-books"
 
-apt-get update
 apt-get install -y nginx curl
 
 
@@ -43,4 +42,7 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-echo "Nginx ready!"
+echo "Налаштування фаєрволу LB та збереження конфігурації..."
+
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo netfilter-persistent save
