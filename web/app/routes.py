@@ -65,7 +65,15 @@ def get_roles():
 @api.route("/houses", methods=["GET"])
 def get_houses():
     houses = House.query.all()
-    return jsonify([{"id": h.id, "name": h.name, "lord_id": h.lord_id} for h in houses]), 200
+    return jsonify([
+        {
+            "id": h.id,
+            "name": h.name,
+            "motto": h.motto,
+            "lord_id": h.lord_id,
+        }
+        for h in houses
+    ]), 200
 
 
 @api.route("/auth/register", methods=["POST"])
@@ -97,6 +105,11 @@ def register():
     )
     db.session.add(user)
     db.session.flush()
+
+    if house_id and role.role_name.lower() == "noble":
+        house = House.query.get(house_id)
+        if house and not house.lord_id:
+            house.lord_id = user.id
 
     base_stats = {
         "noble": (10, 12, 12),
@@ -212,3 +225,48 @@ def get_house_members(current_user, house_id):
             }
         })
     return jsonify(result), 200
+
+
+@api.route("/houses/<int:house_id>", methods=["PUT", "PATCH"])
+@login_required
+def update_house(current_user, house_id):
+    house = House.query.get(house_id)
+    if not house:
+        return jsonify({"error": "House not found"}), 404
+
+    user_role = current_user.role.role_name.lower() if current_user.role else ""
+    is_house_lord = user_role == "noble" or house.lord_id == current_user.id
+
+    if current_user.house_id != house_id or not is_house_lord:
+        return jsonify({"error": "Access denied. Only lords of this house can edit its info."}), 403
+
+    data = request.get_json() or {}
+
+    if "name" in data:
+        new_name = str(data["name"]).strip()
+        if not new_name:
+            return jsonify({"error": "House name cannot be empty"}), 400
+        if len(new_name) > 50:
+            return jsonify({"error": "House name must be 50 characters or fewer"}), 400
+        existing = House.query.filter(House.name == new_name, House.id != house_id).first()
+        if existing:
+            return jsonify({"error": "A house with this name already exists"}), 409
+        house.name = new_name
+
+    if "motto" in data:
+        new_motto = str(data["motto"]).strip()
+        if len(new_motto) > 100:
+            return jsonify({"error": "Motto must be 100 characters or fewer"}), 400
+        house.motto = new_motto if new_motto else None
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "House info updated successfully",
+        "house": {
+            "id": house.id,
+            "name": house.name,
+            "motto": house.motto,
+            "lord_id": house.lord_id,
+        }
+    }), 200

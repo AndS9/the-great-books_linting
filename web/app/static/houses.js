@@ -1,13 +1,37 @@
+const DEFAULT_HOUSE_MOTTOS = {
+    "Stark": "Winter Is Coming",
+    "Lannister": "Hear Me Roar!",
+    "Targaryen": "Fire and Blood",
+    "Baratheon": "Ours Is the Fury"
+};
+
+function getHouseMotto(house) {
+    if (house.motto) return house.motto;
+    if (typeof HOUSE_MOTTOS !== "undefined" && HOUSE_MOTTOS[house.name]) {
+        return HOUSE_MOTTOS[house.name];
+    }
+    return DEFAULT_HOUSE_MOTTOS[house.name] || "Words Unrecorded";
+}
+
+function canEditHouse(house) {
+    if (!currentUser) return false;
+    if (currentUser.house_id !== house.id) return false;
+    const role = (currentUser.role || "").toLowerCase();
+    return role === "noble" || house.lord_id === currentUser.id;
+}
+
 function renderHousesPage() {
     const grid = document.getElementById("houses-grid");
     if (!grid) return;
+
     const countEl = document.getElementById("houses-count");
     if (countEl) countEl.textContent = housesList.length + " Great Houses";
 
     grid.innerHTML = housesList.map(h => {
         const bannerClass = getHouseBannerClass(h.name);
-        const motto = HOUSE_MOTTOS[h.name] || "Words Unrecorded";
+        const motto = getHouseMotto(h);
         const isMyHouse = currentUser && currentUser.house_id === h.id;
+        const editable = canEditHouse(h);
         const lordStatus = h.lord_id ? "Lord ID #" + h.lord_id : "Seat Vacant (No Lord assigned)";
 
         return (
@@ -17,6 +41,9 @@ function renderHousesPage() {
             '<div class="card-motto">"' + motto + '"</div>' +
             '<p class="muted">' + lordStatus + '</p>' +
             (isMyHouse ? '<span class="role-badge">Your Allegiance</span>' : '') +
+            (editable
+                ? '<button class="btn-primary" style="padding: 0.5rem; font-size: 0.9rem;" onclick="openEditHouseForm(' + h.id + ')">✏️ Edit House Info</button>'
+                : '') +
             '<div style="display:flex; gap:0.5rem; margin-top:auto;">' +
             '<button class="btn-secondary" style="flex:1" onclick="filterHouseInBook(\'knights\', ' + h.id + ')">Knights</button>' +
             '<button class="btn-secondary" style="flex:1" onclick="filterHouseInBook(\'lords\', ' + h.id + ')">Lords</button>' +
@@ -25,6 +52,50 @@ function renderHousesPage() {
             '</div>'
         );
     }).join("");
+}
+
+function openEditHouseForm(houseId) {
+    const house = housesMap[houseId];
+    if (!house) return;
+
+    const currentMotto = getHouseMotto(house);
+
+    document.getElementById("edit-house-id").value = house.id;
+    document.getElementById("edit-house-title").textContent = "Edit House " + house.name;
+    document.getElementById("edit-house-name").value = house.name;
+    document.getElementById("edit-house-motto").value = currentMotto === "Words Unrecorded" ? "" : currentMotto;
+
+    const wrapper = document.getElementById("edit-house-wrapper");
+    wrapper.classList.remove("hidden");
+    wrapper.scrollIntoView({ behavior: "smooth" });
+}
+
+function closeEditHouseForm() {
+    document.getElementById("edit-house-wrapper").classList.add("hidden");
+}
+
+async function handleEditHouse(e) {
+    e.preventDefault();
+    const houseId = Number(document.getElementById("edit-house-id").value);
+    const name = document.getElementById("edit-house-name").value.trim();
+    const motto = document.getElementById("edit-house-motto").value.trim();
+
+    try {
+        const res = await apiFetch("/houses/" + houseId, {
+            method: "PUT",
+            body: JSON.stringify({ name, motto })
+        });
+
+        housesMap[houseId] = res.house;
+        housesList = housesList.map(h => (h.id === houseId ? res.house : h));
+
+        closeEditHouseForm();
+        renderHousesPage();
+        updateNavUI(currentUser);
+        showAlert("House " + res.house.name + " info updated!");
+    } catch (err) {
+        showAlert(err.message, true);
+    }
 }
 
 function filterHouseInBook(bookPage, houseId) {
