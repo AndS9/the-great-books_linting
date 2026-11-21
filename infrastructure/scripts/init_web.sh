@@ -2,12 +2,29 @@
 set -euo pipefail
 
 APP_DIR="/opt/web"
-DB_HOST="192.168.56.4"
-DB_PORT="5432"
-DB_NAME="books"
-DB_USER="username"
-DB_PASS="password"
-SECRET_KEY="prod-secret-key-change-me"
+
+if [ ! -f /tmp/.env ]; then
+  echo "ERROR: /tmp/.env not found!" >&2
+  exit 1
+fi
+
+set -a
+if [ -f /tmp/.env ]; then
+    set -a
+    source <(tr -d '\r' < /tmp/.env)
+    set +a
+else
+    echo "Помилка: /tmp/.env не знайдено!" >&2
+    exit 1
+fi
+set +a
+
+: "${DB_HOST:?DB_HOST is required in .env}"
+: "${DB_PORT:?DB_PORT is required in .env}"
+: "${DB_NAME:?DB_NAME is required in .env}"
+: "${DB_USER:?DB_USER is required in .env}"
+: "${DB_PASS:?DB_PASS is required in .env}"
+: "${SECRET_KEY:?SECRET_KEY is required in .env}"
 
 echo "Встановлення залежностей системи..."
 apt-get install -y python3 python3-pip python3-venv libpq-dev nginx curl
@@ -24,11 +41,11 @@ python3 -m venv "${APP_DIR}/venv"
 "${APP_DIR}/venv/bin/pip" install -r "${APP_DIR}/requirements.txt"
 "${APP_DIR}/venv/bin/pip" install gunicorn
 
-echo "Створення .env..."
-cat <<EOF > "${APP_DIR}/.env"
-SECRET_KEY=${SECRET_KEY}
-DATABASE_URI=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-EOF
+echo "Налаштування .env..."
+mv /tmp/.env "${APP_DIR}/.env"
+echo "" >> "${APP_DIR}/.env"
+echo "DATABASE_URI=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> "${APP_DIR}/.env"
+chmod 600 "${APP_DIR}/.env"
 
 echo "Запуск міграцій..."
 cd "${APP_DIR}"
