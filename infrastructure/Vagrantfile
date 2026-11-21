@@ -6,6 +6,7 @@ Vagrant.configure("2") do |config|
 
   config.ssh.insert_key = false
   config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.provision "shell", path: "scripts/init_firewall.sh"
 
   config.vm.define "DB" do |app|
     app.vm.hostname = "db"
@@ -18,7 +19,6 @@ Vagrant.configure("2") do |config|
       vb.linked_clone = true
     end
 
-    app.vm.provision "shell", path: "scripts/init_firewall.sh"
     app.vm.provision "shell", path: "scripts/init_db.sh"
   end
 
@@ -55,7 +55,6 @@ Vagrant.configure("2") do |config|
       source: "../web/",
       destination: "/tmp/web"
 
-    app.vm.provision "shell", path: "scripts/init_firewall.sh"
     app.vm.provision "shell", path: "scripts/init_web.sh"
   end
 
@@ -74,7 +73,6 @@ Vagrant.configure("2") do |config|
       source: "../web/",
       destination: "/tmp/web"
 
-    app.vm.provision "shell", path: "scripts/init_firewall.sh"
     app.vm.provision "shell", path: "scripts/init_web.sh"
   end
 
@@ -94,7 +92,6 @@ Vagrant.configure("2") do |config|
         vb.linked_clone = true
       end
 
-      app.vm.provision "shell", path: "scripts/init_firewall.sh"
       app.vm.provision "shell", path: "scripts/init_nginx_lb.sh"
       end
 end
