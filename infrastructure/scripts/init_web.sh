@@ -10,7 +10,6 @@ DB_PASS="password"
 SECRET_KEY="prod-secret-key-change-me"
 
 echo "Встановлення залежностей системи..."
-apt-get update -y
 apt-get install -y python3 python3-pip python3-venv libpq-dev nginx curl
 
 echo "Перенесення файлів бекенду..."
@@ -58,7 +57,7 @@ After=network.target
 User=root
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
-ExecStart=${APP_DIR}/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 run:app
+ExecStart=${APP_DIR}/venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 run:app
 Restart=always
 RestartSec=3
 

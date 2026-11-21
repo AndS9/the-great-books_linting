@@ -8,7 +8,6 @@ DB_PASS="password"
 ALLOWED_IPS=("192.168.56.2/32" "192.168.56.3/32")
 
 echo "Встановлення PostgreSQL..."
-apt-get update -y
 apt-get install -y postgresql postgresql-contrib
 
 echo "Запуск PostgreSQL..."

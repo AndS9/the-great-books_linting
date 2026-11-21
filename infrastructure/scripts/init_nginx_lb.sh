@@ -4,7 +4,6 @@ set -euo pipefail
 
 SITE_NAME="the-great-books"
 
-apt-get update
 apt-get install -y nginx curl
 
 
