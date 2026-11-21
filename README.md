@@ -13,6 +13,12 @@
 - VirtualBox: https://www.virtualbox.org/wiki/Downloads
 - Vagrant: https://developer.hashicorp.com/vagrant/install
 
+### Environment Setup
+Before starting the infrastructure or running the app locally, create a `.env` file in the root directory from the template:
+```
+cp .env.example .env
+```
+
 ## Create VMs:
 
 ```jsx
