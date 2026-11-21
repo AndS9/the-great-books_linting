@@ -11,7 +11,7 @@ SECRET_KEY="prod-secret-key-change-me"
 
 echo "Встановлення залежностей системи..."
 apt-get update -y
-apt-get install -y python3 python3-pip python3-venv libpq-dev
+apt-get install -y python3 python3-pip python3-venv libpq-dev nginx curl
 
 echo "Перенесення файлів бекенду..."
 rm -rf "${APP_DIR}"
@@ -69,3 +69,32 @@ EOF
 systemctl daemon-reload
 systemctl enable --now web
 systemctl restart web
+
+echo "Конфігурування reverse proxy..."
+cat > "/etc/nginx/sites-available/app" <<'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+EOF
+ln -sfn "/etc/nginx/sites-available/app" \
+    "/etc/nginx/sites-enabled/app"
+
+rm -f /etc/nginx/sites-enabled/default
+
+nginx -t
+
+systemctl enable nginx
+systemctl restart nginx
+
+echo "Reverse proxy запущений!"
