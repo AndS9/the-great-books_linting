@@ -1,60 +1,50 @@
 const REALM_ROSTER_SEED = [
-    { id: 901, username: "Ser Jaime Lannister", role: "knight", house_name: "Lannister", stats: { strength: 18, defense: 16, endurance: 15 } },
-    { id: 902, username: "Ser Brienne of Tarth", role: "knight", house_name: "Stark", stats: { strength: 17, defense: 17, endurance: 16 } },
-    { id: 903, username: "Ser Jorah Mormont", role: "knight", house_name: "Targaryen", stats: { strength: 16, defense: 15, endurance: 16 } },
-    { id: 904, username: "Ser Barristan Selmy", role: "knight", house_name: "Baratheon", stats: { strength: 17, defense: 18, endurance: 14 } },
-    { id: 905, username: "Eddard Stark", role: "noble", house_name: "Stark", stats: { strength: 14, defense: 15, endurance: 14 } },
-    { id: 906, username: "Tywin Lannister", role: "noble", house_name: "Lannister", stats: { strength: 11, defense: 14, endurance: 12 } },
-    { id: 907, username: "Daenerys Targaryen", role: "noble", house_name: "Targaryen", stats: { strength: 10, defense: 13, endurance: 15 } },
-    { id: 908, username: "Robert Baratheon", role: "noble", house_name: "Baratheon", stats: { strength: 19, defense: 14, endurance: 13 } }
+    { id: 901, username: "Ser Jaime Lannister", role: "knight", house_name: "Lannister", is_mock: true, stats: { strength: 18, defense: 16, endurance: 15 } },
+    { id: 902, username: "Ser Brienne of Tarth", role: "knight", house_name: "Stark", is_mock: true, stats: { strength: 17, defense: 17, endurance: 16 } },
+    { id: 903, username: "Ser Jorah Mormont", role: "knight", house_name: "Targaryen", is_mock: true, stats: { strength: 16, defense: 15, endurance: 16 } },
+    { id: 904, username: "Ser Barristan Selmy", role: "knight", house_name: "Baratheon", is_mock: true, stats: { strength: 17, defense: 18, endurance: 14 } },
+    { id: 905, username: "Eddard Stark", role: "noble", house_name: "Stark", is_mock: true, stats: { strength: 14, defense: 15, endurance: 14 } },
+    { id: 906, username: "Tywin Lannister", role: "noble", house_name: "Lannister", is_mock: true, stats: { strength: 11, defense: 14, endurance: 12 } },
+    { id: 907, username: "Daenerys Targaryen", role: "noble", house_name: "Targaryen", is_mock: true, stats: { strength: 10, defense: 13, endurance: 15 } },
+    { id: 908, username: "Robert Baratheon", role: "noble", house_name: "Baratheon", is_mock: true, stats: { strength: 19, defense: 14, endurance: 13 } }
 ];
 
 let allRealmMembers = [];
 
-function getTodayGossipKey() {
-    if (!currentUser) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    return "gossip_used_" + currentUser.id + "_" + today;
-}
-
-function getGossipRecord() {
-    const key = getTodayGossipKey();
-    if (!key) return null;
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-}
-
-function triggerGossip(targetName) {
-    if (!currentUser || currentUser.role !== "knight") return;
-    const key = getTodayGossipKey();
-    if (localStorage.getItem(key)) {
-        return showAlert("You have already used your daily Gossip whisper.", true);
-    }
-    localStorage.setItem(key, JSON.stringify({ target: targetName, date: new Date().toISOString() }));
-    showAlert("Spymaster report received! Combat stats revealed for " + targetName + ".");
-    if (document.getElementById("grid-knights")) renderBook("knight");
-    if (document.getElementById("grid-lords")) renderBook("noble");
+function getMockGossipTargetId() {
+    if (!currentUser || !currentUser.gossip_key) return null;
+    const saved = localStorage.getItem("mock_gossip_" + currentUser.gossip_key);
+    return saved ? Number(saved) : null;
 }
 
 async function loadRealmRoster() {
-    let houseMembers = [];
+    let dbMembers = [];
     let noticeText = "";
 
-    if (currentUser && currentUser.house_id) {
+    if (currentUser) {
         try {
-            const members = await apiFetch("/houses/" + currentUser.house_id + "/members");
-            houseMembers = members.map(m => ({
-                ...m,
-                house_id: currentUser.house_id,
-                from_db: true
-            }));
-            const curHouseName = housesMap[currentUser.house_id] ? housesMap[currentUser.house_id].name : "your House";
-            noticeText = "Sworn to House " + curHouseName + ": viewing live house members from database alongside rival houses.";
+            const knights = await apiFetch("/knights");
+            dbMembers.push(...knights);
         } catch (err) {
             console.warn(err.message);
         }
-    } else if (currentUser) {
-        noticeText = "You are not sworn to any Great House. Combat stats of noble houses remain sealed.";
+
+        if (currentUser.house_id) {
+            try {
+                const houseMembers = await apiFetch("/houses/" + currentUser.house_id + "/members");
+                houseMembers.forEach(m => {
+                    if (!dbMembers.some(d => d.id === m.id)) {
+                        dbMembers.push({ ...m, house_id: currentUser.house_id });
+                    }
+                });
+                const curHouseName = housesMap[currentUser.house_id] ? housesMap[currentUser.house_id].name : "your House";
+                noticeText = "Sworn to House " + curHouseName + ": viewing live members alongside rival houses.";
+            } catch (err) {
+                console.warn(err.message);
+            }
+        } else {
+            noticeText = "You are not sworn to any Great House. Combat stats of noble houses remain sealed.";
+        }
     } else {
         noticeText = "Guest view: Sign in and swear allegiance to a Great House to inspect your housemates' combat stats.";
     }
@@ -75,7 +65,7 @@ async function loadRealmRoster() {
         };
     });
 
-    const combined = [...houseMembers];
+    const combined = [...dbMembers];
     seedWithIds.forEach(seed => {
         if (!combined.some(c => c.username.toLowerCase() === seed.username.toLowerCase())) {
             combined.push(seed);
@@ -127,15 +117,17 @@ function renderCharacterCard(person, bookRole) {
     const bannerClass = getHouseBannerClass(houseName);
     const initials = getInitials(person.username);
 
-    const gossipRecord = getGossipRecord();
-    const revealedByGossip = gossipRecord && gossipRecord.target === person.username;
+    const mockTargetId = getMockGossipTargetId();
+    const activeTargetId = (currentUser && currentUser.gossip_target_id) || mockTargetId;
+    const revealedByGossip = activeTargetId === person.id;
 
     const canSeeStats = revealedByGossip || (currentUser && (
         currentUser.role === "noble" ||
         (currentUser.house_id && currentUser.house_id === person.house_id)
     ));
 
-    const isKnightViewer = currentUser && currentUser.role === "knight";
+    const isKnightViewer = currentUser && currentUser.role.toLowerCase() === "knight";
+    const alreadyUsedToday = activeTargetId !== null;
 
     let statsHtml = "";
     if (canSeeStats && person.stats) {
@@ -146,11 +138,20 @@ function renderCharacterCard(person, bookRole) {
             '<span>END: <b>' + person.stats.endurance + '</b></span>' +
             '</div>';
     } else {
-        const disabledAttr = gossipRecord ? "disabled" : "";
-        const btnLabel = gossipRecord ? "👁️ Daily Gossip Used" : "👁️ Use Gossip (1/day)";
-        statsHtml =
-            '<div class="stats-locked">🔒 Stats hidden (Same House & Lords only)</div>' +
-            (isKnightViewer ? '<button class="btn-gossip" ' + disabledAttr + ' onclick="triggerGossip(\'' + person.username + '\')">' + btnLabel + '</button>' : '');
+        statsHtml = '<div class="stats-locked">🔒 Stats hidden (Same House & Lords only)</div>';
+
+        if (isKnightViewer && bookRole === "knight") {
+            if (alreadyUsedToday) {
+                statsHtml += '<button class="btn-gossip" disabled>👁️ Daily Gossip Used</button>';
+            } else {
+                statsHtml +=
+                    '<button type="button" class="btn-gossip" onclick="toggleGossipForm(' + person.id + ')">👁️ Use Gossip Key</button>' +
+                    '<div id="gossip-form-' + person.id + '" class="hidden" style="margin-top: 0.5rem; display: flex; gap: 0.4rem;">' +
+                    '<input type="text" id="gossip-input-' + person.id + '" class="search-input" placeholder="Paste gossip key..." style="padding: 0.4rem; font-size: 0.85rem;">' +
+                    '<button type="button" class="btn-primary" style="margin-top: 0; padding: 0.4rem 0.7rem; font-size: 0.85rem;" onclick="submitGossip(' + person.id + ')">Unlock</button>' +
+                    '</div>';
+            }
+        }
     }
 
     return (
@@ -167,6 +168,50 @@ function renderCharacterCard(person, bookRole) {
         '</div>' +
         '</div>'
     );
+}
+
+function toggleGossipForm(targetId) {
+    const form = document.getElementById("gossip-form-" + targetId);
+    if (form) form.classList.toggle("hidden");
+}
+
+async function submitGossip(targetId) {
+    const input = document.getElementById("gossip-input-" + targetId);
+    const key = input ? input.value.trim() : "";
+
+    if (!key) {
+        return showAlert("Please paste your Gossip key first.", true);
+    }
+
+    const targetPerson = allRealmMembers.find(m => m.id === targetId);
+
+    if (targetPerson && targetPerson.is_mock) {
+        if (!currentUser || !currentUser.gossip_key) {
+            return showAlert("Generate a gossip key in your Profile first.", true);
+        }
+        if (key !== currentUser.gossip_key) {
+            return showAlert("Invalid gossip key.", true);
+        }
+        if (getMockGossipTargetId() !== null || currentUser.gossip_target_id !== null) {
+            return showAlert("You have already used your gossip key for today.", true);
+        }
+        localStorage.setItem("mock_gossip_" + currentUser.gossip_key, String(targetId));
+        showAlert("Combat stats revealed for " + targetPerson.username + ".");
+        await loadRealmRoster();
+        return;
+    }
+
+    try {
+        const res = await apiFetch("/gossip", {
+            method: "POST",
+            body: JSON.stringify({ key: key, target_id: targetId })
+        });
+        showAlert(res.message || "Combat stats revealed!");
+        currentUser = await apiFetch("/me");
+        await loadRealmRoster();
+    } catch (err) {
+        showAlert(err.message, true);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

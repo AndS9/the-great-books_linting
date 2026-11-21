@@ -57,6 +57,17 @@
                     <span id="gossip-status-pill" class="gossip-pill">Checking...</span>
                 </div>
                 <p id="gossip-desc" class="muted"></p>
+
+                <div id="gossip-key-controls" class="hidden" style="margin-top: 1rem;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <input type="text" id="gossip-key-input" class="search-input" readonly
+                               placeholder="No key generated yet" style="font-family: monospace;">
+                        <button type="button" class="btn-secondary" onclick="copyGossipKey()">Copy</button>
+                        <button type="button" id="btn-update-key" class="btn-primary" style="margin-top: 0;"
+                                onclick="updateGossipKey()">Update Key</button>
+                    </div>
+                    <p id="gossip-next-time" class="muted" style="margin-top: 0.5rem; font-size: 0.82rem;"></p>
+                </div>
             </div>
         </div>
     </div>
