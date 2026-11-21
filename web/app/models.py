@@ -14,12 +14,16 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    photo_url = db.Column(db.String(255), nullable=True)
     password = db.Column(db.String(180), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
     house_id = db.Column(db.Integer, db.ForeignKey("houses.id"), nullable=True)
 
     role = db.relationship("Role", backref="users")
-    stats = db.relationship("Stat", backref="user", uselist=False, cascade="all, delete-orphan")
+    stats = db.relationship("Stat", 
+                            backref="user", uselist=False, 
+                            cascade="all, delete-orphan",
+                            foreign_keys="Stat.user_id")
 
 
 class House(db.Model):
@@ -38,6 +42,9 @@ class Stat(db.Model):
     strength = db.Column(db.Integer, default=10)
     defense = db.Column(db.Integer, default=10)
     endurance = db.Column(db.Integer, default=10)
+    key = db.Column(db.String(64), nullable=True)
+    next_key = db.Column(db.DateTime, nullable=True)
+    gossip_target_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
 
 class Session(db.Model):
