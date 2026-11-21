@@ -97,4 +97,7 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-echo "Reverse proxy запущений!"
+echo "Налаштування фаєрволу для додатку..."
+
+sudo iptables -A INPUT -p tcp -s 192.168.56.10 --dport 80 -j ACCEPT
+sudo netfilter-persistent save

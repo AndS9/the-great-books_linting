@@ -35,9 +35,11 @@ sed -i "s/^#*listen_addresses\s*=.*/listen_addresses = '*'/" "$PG_CONF"
 for ip in "${ALLOWED_IPS[@]}"; do # allowed IPs processing through loop so when we create new app replicas we can just add their IPs to the list and run this script again
   HBA_RULE="host    all             all             ${ip}         scram-sha-256"
   grep -qxF "$HBA_RULE" "$HBA_CONF" || echo "$HBA_RULE" >> "$HBA_CONF"
+  sudo iptables -A INPUT -p tcp --dport 5432 -s ${ip} -j ACCEPT
 done
 
 echo "Перезапуск PostgreSQL..." # restarting for applying settings changes
 systemctl restart postgresql
 
+sudo netfilter-persistent save
 
