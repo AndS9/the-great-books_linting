@@ -12,10 +12,13 @@ let housesList = [];
 let housesMap = {};
 
 async function apiFetch(endpoint, options = {}) {
-    const headers = {
-        "Content-Type": "application/json",
-        ...options.headers
-    };
+    const isFormData = options.body instanceof FormData;
+    const headers = isFormData
+        ? { ...options.headers }
+        : {
+            "Content-Type": "application/json",
+            ...options.headers
+        };
 
     const response = await fetch(API_BASE + endpoint, {
         credentials: "same-origin",

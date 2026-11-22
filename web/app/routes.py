@@ -1,10 +1,14 @@
 import os
+<<<<<<< HEAD
+=======
 import base64
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from .extensions import db
 from .models import User, Role, House, Stat, Session, IPs
 from sqlalchemy.exc import IntegrityError
@@ -265,7 +269,10 @@ def get_me(current_user):
         "role": current_user.role.role_name,
         "house_id": current_user.house_id,
         "photo_url": current_user.photo_url,
+<<<<<<< HEAD
+=======
         "is_white_knight": current_user.is_white_knight,
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
         "stats": {
             "strength": current_user.stats.strength if current_user.stats else 0,
             "defense": current_user.stats.defense if current_user.stats else 0,
@@ -274,8 +281,99 @@ def get_me(current_user):
         "gossip_key": current_user.stats.key if (is_knight and current_user.stats) else None,
         "next_key": current_user.stats.next_key.isoformat() if (is_knight and current_user.stats and current_user.stats.next_key) else None,
         "gossip_target_id": current_user.stats.gossip_target_id if (is_knight and current_user.stats) else None,
+<<<<<<< HEAD
+        }), 200
+
+
+@api.route("/me", methods=["PUT", "PATCH"])
+@login_required
+def update_me(current_user):
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    data = request.form if is_multipart else (request.get_json() or {})
+
+    if "username" in data:
+        new_username = str(data["username"]).strip()
+        if not new_username:
+            return jsonify({"error": "Username cannot be empty"}), 400
+        if len(new_username) > 50:
+            return jsonify({"error": "Username must be 50 characters or fewer"}), 400
+        existing = User.query.filter(User.username == new_username, User.id != current_user.id).first()
+        if existing:
+            return jsonify({"error": "Username already taken"}), 409
+        current_user.username = new_username
+
+    if "house_id" in data:
+        raw_house = data.get("house_id")
+        role_name = current_user.role.role_name.lower() if current_user.role else ""
+        if raw_house is None or str(raw_house).strip() == "":
+            if role_name == "noble" and current_user.house_id:
+                old_house = House.query.get(current_user.house_id)
+                if old_house and old_house.lord_id == current_user.id:
+                    old_house.lord_id = None
+            current_user.house_id = None
+        else:
+            try:
+                house_id_int = int(raw_house)
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid house_id"}), 400
+            house = House.query.get(house_id_int)
+            if not house:
+                return jsonify({"error": "Invalid house_id"}), 400
+            if role_name == "noble" and current_user.house_id and current_user.house_id != house.id:
+                old_house = House.query.get(current_user.house_id)
+                if old_house and old_house.lord_id == current_user.id:
+                    old_house.lord_id = None
+            current_user.house_id = house.id
+            if role_name == "noble" and not house.lord_id:
+                house.lord_id = current_user.id
+
+    photo_file = request.files.get("photo") if is_multipart else None
+    if photo_file and photo_file.filename:
+        allowed_exts = {"png", "jpg", "jpeg", "webp"}
+        ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
+        if ext not in allowed_exts:
+            return jsonify({"error": "Invalid format. Please choose PNG, JPG, or WEBP."}), 400
+
+        photo_file.seek(0, os.SEEK_END)
+        file_size = photo_file.tell()
+        photo_file.seek(0)
+        if file_size > 5 * 1024 * 1024:
+            return jsonify({"error": "Image is too large. Maximum size is 5 MB."}), 400
+
+        upload_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = secure_filename(f"user_{current_user.id}_{secrets.token_hex(8)}.{ext}")
+        photo_file.save(os.path.join(upload_dir, filename))
+        current_user.photo_url = url_for("static", filename=f"uploads/avatars/{filename}")
+    elif str(data.get("remove_photo", "")).lower() in ("1", "true"):
+        current_user.photo_url = None
+
+    if data.get("new_password"):
+        current_password = data.get("current_password", "")
+        new_password = str(data["new_password"])
+        if not current_password or not check_password_hash(current_user.password, current_password):
+            return jsonify({"error": "Current password is incorrect"}), 400
+        if len(new_password) < 4:
+            return jsonify({"error": "New password is too short"}), 400
+        current_user.password = generate_password_hash(new_password)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Profile updated successfully",
+        "user": {
+            "id": current_user.id,
+            "username": current_user.username,
+            "role": current_user.role.role_name,
+            "house_id": current_user.house_id,
+            "photo_url": current_user.photo_url,
+        }
+    }), 200
+    
+=======
     }), 200
 
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 
 @api.route("/me/gossip-key", methods=["POST"])
 @login_required
