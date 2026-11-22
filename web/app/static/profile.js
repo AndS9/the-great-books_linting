@@ -1,3 +1,6 @@
+let editSelectedPhotoFile = null;
+let editRemoveExistingPhoto = false;
+
 async function loadProfile() {
     const profUsername = document.getElementById("prof-username");
     if (!profUsername) return;
@@ -19,7 +22,7 @@ async function loadProfile() {
         const profMonogram = document.getElementById("prof-monogram");
         if (profMonogram) {
             if (me.photo_url) {
-                profMonogram.innerHTML = `<img src="${me.photo_url}" alt="${me.username}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                profMonogram.innerHTML = `<img src="${me.photo_url}" alt="${me.username}" class="monogram-avatar">`;
             } else {
                 profMonogram.textContent = getInitials(me.username);
             }
@@ -110,6 +113,184 @@ async function loadProfile() {
         }
     } catch (err) {
         showAlert(err.message, true);
+    }
+}
+
+function handleEditPhotoDragOver(e) {
+    e.preventDefault();
+    const zone = document.getElementById("edit-photo-dropzone");
+    if (zone) {
+        zone.style.borderColor = "#d4af37";
+        zone.style.background = "rgba(212, 175, 55, 0.08)";
+    }
+}
+
+function handleEditPhotoDragLeave(e) {
+    e.preventDefault();
+    const zone = document.getElementById("edit-photo-dropzone");
+    if (zone) {
+        zone.style.borderColor = "rgba(212, 175, 55, 0.45)";
+        zone.style.background = "rgba(255, 255, 255, 0.02)";
+    }
+}
+
+function handleEditPhotoDrop(e) {
+    e.preventDefault();
+    handleEditPhotoDragLeave(e);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+        processEditSelectedPhoto(files[0]);
+    }
+}
+
+function handleEditPhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (file) {
+        processEditSelectedPhoto(file);
+    }
+}
+
+function processEditSelectedPhoto(file) {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+        showAlert("Invalid format. Please choose PNG, JPG, or WEBP.", true);
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        showAlert("Image is too large. Maximum size is 5 MB.", true);
+        return;
+    }
+
+    editSelectedPhotoFile = file;
+    editRemoveExistingPhoto = false;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const previewImg = document.getElementById("edit-photo-preview-img");
+        const fileNameEl = document.getElementById("edit-photo-file-name");
+        const placeholder = document.getElementById("edit-photo-placeholder");
+        const previewWrap = document.getElementById("edit-photo-preview-wrap");
+
+        if (previewImg) previewImg.src = ev.target.result;
+        if (fileNameEl) fileNameEl.textContent = file.name;
+        if (placeholder) placeholder.classList.add("hidden");
+        if (previewWrap) previewWrap.classList.remove("hidden");
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearEditSelectedPhoto(e) {
+    if (e) e.stopPropagation();
+    editSelectedPhotoFile = null;
+    editRemoveExistingPhoto = true;
+
+    const input = document.getElementById("edit-photo");
+    const previewImg = document.getElementById("edit-photo-preview-img");
+    const fileNameEl = document.getElementById("edit-photo-file-name");
+    const placeholder = document.getElementById("edit-photo-placeholder");
+    const previewWrap = document.getElementById("edit-photo-preview-wrap");
+
+    if (input) input.value = "";
+    if (previewImg) previewImg.src = "";
+    if (fileNameEl) fileNameEl.textContent = "";
+    if (previewWrap) previewWrap.classList.add("hidden");
+    if (placeholder) placeholder.classList.remove("hidden");
+}
+
+function openEditProfileModal() {
+    if (!currentUser) return;
+    editSelectedPhotoFile = null;
+    editRemoveExistingPhoto = false;
+
+    const modal = document.getElementById("edit-profile-modal");
+    const usernameInput = document.getElementById("edit-username");
+    const houseSelect = document.getElementById("edit-house");
+    const curPassInput = document.getElementById("edit-current-password");
+    const newPassInput = document.getElementById("edit-new-password");
+    const photoInput = document.getElementById("edit-photo");
+    const previewImg = document.getElementById("edit-photo-preview-img");
+    const fileNameEl = document.getElementById("edit-photo-file-name");
+    const placeholder = document.getElementById("edit-photo-placeholder");
+    const previewWrap = document.getElementById("edit-photo-preview-wrap");
+
+    if (usernameInput) usernameInput.value = currentUser.username || "";
+    if (curPassInput) curPassInput.value = "";
+    if (newPassInput) newPassInput.value = "";
+    if (photoInput) photoInput.value = "";
+
+    if (currentUser.photo_url) {
+        if (previewImg) previewImg.src = currentUser.photo_url;
+        if (fileNameEl) fileNameEl.textContent = "Current portrait";
+        if (placeholder) placeholder.classList.add("hidden");
+        if (previewWrap) previewWrap.classList.remove("hidden");
+    } else {
+        if (previewImg) previewImg.src = "";
+        if (fileNameEl) fileNameEl.textContent = "";
+        if (previewWrap) previewWrap.classList.add("hidden");
+        if (placeholder) placeholder.classList.remove("hidden");
+    }
+
+    if (houseSelect) {
+        houseSelect.innerHTML = '<option value="">None (Free Rider / Commonfolk)</option>';
+        Object.values(housesMap).forEach(h => {
+            const opt = document.createElement("option");
+            opt.value = h.id;
+            opt.textContent = "House " + h.name;
+            houseSelect.appendChild(opt);
+        });
+        houseSelect.value = currentUser.house_id ? String(currentUser.house_id) : "";
+    }
+
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeEditProfileModal() {
+    const modal = document.getElementById("edit-profile-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+function handleModalBackdropClick(e) {
+    if (e.target && e.target.id === "edit-profile-modal") {
+        closeEditProfileModal();
+    }
+}
+
+async function saveProfileChanges(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btn-save-profile");
+    if (btn) btn.disabled = true;
+
+    const username = document.getElementById("edit-username").value.trim();
+    const houseRaw = document.getElementById("edit-house").value;
+    const current_password = document.getElementById("edit-current-password").value;
+    const new_password = document.getElementById("edit-new-password").value;
+
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("house_id", houseRaw);
+    if (editSelectedPhotoFile) {
+        formData.append("photo", editSelectedPhotoFile);
+    } else if (editRemoveExistingPhoto) {
+        formData.append("remove_photo", "1");
+    }
+    if (new_password) {
+        formData.append("current_password", current_password);
+        formData.append("new_password", new_password);
+    }
+
+    try {
+        const res = await apiFetch("/me", {
+            method: "PATCH",
+            body: formData
+        });
+        showAlert(res.message || "Profile updated");
+        closeEditProfileModal();
+        await loadProfile();
+        updateNavUI(currentUser);
+    } catch (err) {
+        showAlert(err.message, true);
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 

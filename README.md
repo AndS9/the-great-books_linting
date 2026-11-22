@@ -172,7 +172,7 @@ The application provides a server-rendered web interface with authentication gua
 ### General (Public)
 
 - `GET /api/roles` - get all roles (`noble`, `knight`, `commonfolk`)
-- `GET /api/houses` - get all houses with their names, mottos, and lord IDs
+- `GET /api/houses` - get all houses with their names and mottos
 
 ### Authentication
 

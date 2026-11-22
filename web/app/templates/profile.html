@@ -15,6 +15,7 @@
                     <h2 id="prof-username">Username</h2>
                     <p id="prof-house" class="house-title">House: None</p>
                 </div>
+                <button type="button" class="btn-secondary" onclick="openEditProfileModal()">Edit Profile</button>
             </div>
             <p id="prof-motto" class="motto-text"></p>
 
@@ -72,6 +73,66 @@
         </div>
     </div>
 </section>
+
+<div id="edit-profile-modal" class="modal-backdrop hidden" onclick="handleModalBackdropClick(event)">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Edit Profile</h3>
+            <button type="button" class="modal-close" onclick="closeEditProfileModal()">&times;</button>
+        </div>
+        <form id="edit-profile-form" class="auth-form" onsubmit="saveProfileChanges(event)">
+            <label>
+                Username
+                <input type="text" id="edit-username" maxlength="50" required>
+            </label>
+            <label>
+                Sworn House
+                <select id="edit-house">
+                    <option value="">None (Free Rider / Commonfolk)</option>
+                </select>
+            </label>
+
+            <div class="photo-upload-block">
+                <span style="display: block; margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--text-muted);">Portrait / Coat of Arms</span>
+                <div id="edit-photo-dropzone"
+                     onclick="document.getElementById('edit-photo').click()"
+                     ondragover="handleEditPhotoDragOver(event)"
+                     ondragleave="handleEditPhotoDragLeave(event)"
+                     ondrop="handleEditPhotoDrop(event)"
+                     style="border: 1px dashed rgba(212, 175, 55, 0.45); border-radius: 8px; padding: 0.9rem; text-align: center; background: rgba(255, 255, 255, 0.02); cursor: pointer; transition: border-color 0.2s, background 0.2s;">
+                    <input type="file" id="edit-photo" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="handleEditPhotoSelect(event)">
+                    
+                    <div id="edit-photo-placeholder" style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                        <span style="font-size: 1.4rem; color: #d4af37;">&#9876;</span>
+                        <span style="font-size: 0.9rem;">Click or drag a portrait image here</span>
+                        <small class="muted" style="font-size: 0.78rem;">PNG, JPG, WEBP up to 5 MB</small>
+                    </div>
+
+                    <div id="edit-photo-preview-wrap" class="hidden" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                        <img id="edit-photo-preview-img" src="" alt="Preview" style="width: 76px; height: 76px; object-fit: cover; border-radius: 50%; border: 2px solid #d4af37;">
+                        <span id="edit-photo-file-name" style="font-size: 0.82rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                        <button type="button" onclick="clearEditSelectedPhoto(event)" style="background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.5); color: #ff8a93; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.78rem; cursor: pointer;">
+                            Remove photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <label>
+                Current Password (required only if changing password)
+                <input type="password" id="edit-current-password" autocomplete="current-password">
+            </label>
+            <label>
+                New Password (optional)
+                <input type="password" id="edit-new-password" autocomplete="new-password">
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeEditProfileModal()">Cancel</button>
+                <button type="submit" id="btn-save-profile" class="btn-primary" style="margin-top: 0;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
