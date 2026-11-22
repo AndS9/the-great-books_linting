@@ -388,9 +388,9 @@ def get_knights(current_user):
     if not knight_role:
         return jsonify([]), 200
     
-    knights = User.query.filter_by(role_id=knight_role.id).all()
-    viewer_role = current_user.role.role_name.lower() if current_user.role else ""
-    revealed_target_id = current_user.stats.gossip_target_id if current_user.stats else None
+    knights = User.query.filter_by(role_id=knight_role.id, nightwatch=False).all()
+    viewer_role = current_user.role.role_name.lower() if current_user.role.role_name else ""
+    revealed_target_id = current_user.stats.gossip_target_id if current_user.stats.gossip_target_id else ""
     
     result = []
     for k in knights:

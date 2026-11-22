@@ -187,6 +187,23 @@ function renderCharacterCard(person, bookRole) {
         banBtnHtml = '<button type="button" class="btn-ban" onclick="sendToNightsWatch(' + person.id + ', \'' + person.username.replace(/'/g, "\\'") + '\')">⚔️ Send to Night\'s Watch</button>';
     }
 
+    const targetRole = person.role ? person.role.toLowerCase() : "";
+    const isLordOfSameHouse = (
+        currentUser &&
+        currentUser.role &&
+        currentUser.role.toLowerCase() === "noble" &&
+        currentUser.house_id &&
+        currentUser.house_id === person.house_id &&
+        person.id !== currentUser.id &&
+        (targetRole === "knight" || targetRole === "noble") &&
+        !person.is_mock
+    );
+
+    let banBtnHtml = "";
+    if (isLordOfSameHouse) {
+        banBtnHtml = '<button type="button" class="btn-ban" onclick="sendToNightsWatch(' + person.id + ', \'' + person.username.replace(/'/g, "\\'") + '\')">⚔️ Send to Night\'s Watch</button>';
+    }
+
     return (
         '<div class="knight-card">' +
         '<div class="card-crest-bg ' + bannerClass + '">' +
