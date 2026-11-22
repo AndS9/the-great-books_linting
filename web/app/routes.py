@@ -7,8 +7,7 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from .extensions import db
-from .models import User, Role, House, Stat, Session, IPs
-from sqlalchemy.exc import IntegrityError
+from .models import User, Role, House, Stat, Session
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
@@ -37,9 +36,7 @@ def require_auth():
         return redirect(url_for("web_ui.login"))
     else:
         current_user = User.query.get(session_obj.user_id)
-        if(current_user and current_user.nightwatch):
-            record_user_ip(current_user.id, get_client_ip())
-            db.session.commit()
+        if current_user and current_user.nightwatch:
             if request.path != "/nightwatch":
                 return redirect(url_for("web_ui.nightwatch"))
             return None
@@ -100,10 +97,8 @@ def login_required(f):
         if not current_user:
             return jsonify({"error": "User not found"}), 404
         
-        if is_banished_ip(): return jsonify({"error": "Banished"}), 403
-
-        record_user_ip(current_user.id, get_client_ip())
-        db.session.commit()
+        if current_user.nightwatch or is_banished_ip():
+            return jsonify({"error": "Banished"}), 403
 
         return f(current_user, *args, **kwargs)
     return decorated
@@ -143,6 +138,9 @@ def register():
     if not username or not password or not role_id:
         return jsonify({"error": "username, password and role_id are required"}), 400
 
+    if len(username) < 5 or len(username) > 20:
+        return jsonify({"error": "Username must be between 5 and 20 characters"}), 400
+
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already taken"}), 409
 
@@ -171,13 +169,9 @@ def register():
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=ip_now[:15],
+        ip_address=ip_now,
     )
     db.session.add(new_session)
-    
-    user_id = user.id
-    record_user_ip(user_id, ip_now)
-    
     db.session.commit()
 
     response = make_response(jsonify({
@@ -209,9 +203,7 @@ def login():
     if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid credentials"}), 401
     
-    if(user.nightwatch):
-        record_user_ip(user.id, get_client_ip())
-        db.session.commit()
+    if user.nightwatch:
         return jsonify({
             "error": "You're under nightwatch"
         }), 403
@@ -223,13 +215,9 @@ def login():
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=ip_now[:15],
+        ip_address=ip_now,
     )
     db.session.add(new_session)
-    
-    user_id = user.id
-    record_user_ip(user_id, ip_now)
-    
     db.session.commit()
 
     response = make_response(jsonify({
@@ -438,8 +426,8 @@ def update_house(current_user, house_id):
         new_name = str(data["name"]).strip()
         if not new_name:
             return jsonify({"error": "House name cannot be empty"}), 400
-        if len(new_name) > 50:
-            return jsonify({"error": "House name must be 50 characters or fewer"}), 400
+        if len(new_name) < 5 or len(new_name) > 20:
+            return jsonify({"error": "House name must be between 5 and 20 characters"}), 400
         existing = House.query.filter(House.name == new_name, House.id != house_id).first()
         if existing:
             return jsonify({"error": "A house with this name already exists"}), 409
@@ -447,9 +435,11 @@ def update_house(current_user, house_id):
 
     if "motto" in data:
         new_motto = str(data["motto"]).strip()
-        if len(new_motto) > 100:
-            return jsonify({"error": "Motto must be 100 characters or fewer"}), 400
-        house.motto = new_motto if new_motto else None
+        if not new_motto:
+            return jsonify({"error": "House motto cannot be empty"}), 400
+        if len(new_motto) < 5 or len(new_motto) > 30:
+            return jsonify({"error": "Motto must be between 5 and 30 characters"}), 400
+        house.motto = new_motto
 
     db.session.commit()
 
@@ -470,7 +460,10 @@ def get_knights(current_user):
     if not knight_role:
         return jsonify([]), 200
     
-    knights = User.query.filter_by(role_id=knight_role.id, nightwatch=False).all()
+    knights = User.query.filter(
+        User.role_id == knight_role.id,
+        User.nightwatch.isnot(True)
+    ).all()
     viewer_role = current_user.role.role_name.lower() if current_user.role.role_name else ""
     revealed_target_id = current_user.stats.gossip_target_id if (current_user.stats and current_user.stats.gossip_target_id) else ""
     
@@ -504,7 +497,10 @@ def get_lords(current_user):
     if not noble_role:
         return jsonify([]), 200
 
-    lords = User.query.filter_by(role_id=noble_role.id).all()
+    lords = User.query.filter(
+        User.role_id == noble_role.id,
+        User.nightwatch.isnot(True)
+    ).all()
     return jsonify([
         {
             "id": l.id,
@@ -575,18 +571,6 @@ def get_client_ip():
     return ip[:45]
 
 
-def record_user_ip(user_id, ip):
-    if not ip:
-        return
-    exists = IPs.query.filter_by(user_id=user_id, ip_address=ip).first()
-    if not exists:
-        try:
-            with db.session.begin_nested():
-                db.session.add(IPs(user_id=user_id, ip_address=ip))
-        except IntegrityError:
-            pass
-        
-
 @api.route("/nightwatch/<int:target_id>", methods=["POST"])
 @login_required
 def ban_with_nightwatch(current_user, target_id):
@@ -615,7 +599,6 @@ def ban_with_nightwatch(current_user, target_id):
 
     if target_role in ("noble", "knight"):
         if current_user.house_id and target.house_id and current_user.house_id == target.house_id:
-            Session.query.filter_by(user_id=target.id).delete()
             target.nightwatch = True
             target.house_id = None
             db.session.commit()
@@ -627,7 +610,6 @@ def ban_with_nightwatch(current_user, target_id):
                 "error": f"Can't ban {target_role} from another house"
             }), 403
     else:
-        Session.query.filter_by(user_id=target.id).delete()
         target.nightwatch = True
         db.session.commit()
         return jsonify({
@@ -641,9 +623,11 @@ def is_banished_ip():
     if ip_now:
         found_user = (
             User.query
-            .join(IPs, User.id == IPs.user_id)
-            .filter(IPs.ip_address == ip_now, User.nightwatch.is_(True)).first())
-        if(found_user):
+            .join(Session, User.id == Session.user_id)
+            .filter(Session.ip_address == ip_now, User.nightwatch.is_(True))
+            .first()
+        )
+        if found_user:
             return True
             
     return False
@@ -719,6 +703,10 @@ def setup_knight(current_user):
         endurance = int(request.form.get("endurance", 10))
     except ValueError:
         return jsonify({"error": "Stats must be numbers"}), 400
+
+    for stat_val, stat_name in [(strength, "Strength"), (defense, "Defense"), (endurance, "Endurance")]:
+        if not (0 <= stat_val <= 20):
+            return jsonify({"error": f"{stat_name} must be between 0 and 20"}), 400
 
     photo_url = save_uploaded_photo(photo, current_user.id)
     if not photo_url:
