@@ -26,6 +26,8 @@ async function handleLogin(e) {
             const role = res.user.role.toLowerCase();
             if (role === "noble" && !currentUser.photo_url) {
                 window.location.href = "/lord-setup";
+            } else if (role === "knight" && !currentUser.photo_url) {
+                window.location.href = "/knight-setup";
             } else {
                 window.location.href = role === "noble" ? "/lords" : "/knights";
             }
@@ -52,6 +54,8 @@ async function handleRegister(e) {
         const role = res.user.role.toLowerCase();
         if (role === "noble") {
             window.location.href = "/lord-setup";
+        } else if (role === "knight") {
+            window.location.href = "/knight-setup";
         } else {
             showAlert("Account created!");
             setTimeout(() => {
