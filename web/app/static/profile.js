@@ -49,19 +49,37 @@ async function loadProfile() {
 
         const pill = document.getElementById("gossip-status-pill");
         const desc = document.getElementById("gossip-desc");
+        const controls = document.getElementById("gossip-key-controls");
+        const keyInput = document.getElementById("gossip-key-input");
+        const nextTimeEl = document.getElementById("gossip-next-time");
 
         if (pill && desc) {
             if (me.role !== "knight") {
                 pill.textContent = "Not Available";
                 desc.textContent = "Only sworn Knights can dispatch spies for daily Gossip.";
+                if(controls) controls.classList.add("hidden");
             } else {
-                const used = getGossipRecord();
-                if (used) {
+                if(controls) controls.classList.remove("hidden");
+                if(keyInput) keyInput.value = me.gossip_key || "";
+
+                if (!me.gossip_key) {
+                    pill.textContent = "No Key Yet";
+                    desc.textContent = "Click 'Update Key' to generate your first daily Gossip key.";
+                } else if(me.gossip_target_id){
                     pill.textContent = "Used Today";
-                    desc.textContent = "Today's spy report was requested for " + used.target + ". Next whisper available tomorrow.";
+                    desc.textContent = "You have already used today's key to reveal a rival knight's stats.";
                 } else {
-                    pill.textContent = "1 Whisper Ready";
-                    desc.textContent = "You may uncover hidden combat stats of 1 rival House warrior today from the Book of Knights or Book of Lords.";
+                    pill.textContent = "Key Active";
+                    desc.textContent = "Copy your key and use it in the Book of Knights to reveal 1 rival knight's stats.";
+                }
+
+                if(nextTimeEl) {
+                    if(me.next_key) {
+                        const nextDate = new Date(me.next_key + "Z");
+                        nextTimeEl.textContent = "Next key update available after: " + nextDate.toLocaleString();
+                    } else {
+                        nextTimeEl.textContent = "Key update is available now.";
+                    }
                 }
             }
         }
@@ -70,17 +88,45 @@ async function loadProfile() {
     }
 }
 
-function getTodayGossipKey() {
-    if (!currentUser) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    return "gossip_used_" + currentUser.id + "_" + today;
+async function updateGossipKey() {
+    const btn = document.getElementById("btn-update-key");
+    if(btn) btn.disabled = true;
+
+    try {
+        const res = await apiFetch("/me/gossip-key", { method: "POST"});
+        showAlert(res.message || "Gossip key updated");
+        await loadProfile();
+    } catch (err) {
+        showAlert(err.message, true);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
-function getGossipRecord() {
-    const key = getTodayGossipKey();
-    if (!key) return null;
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+function copyGossipKey() {
+    const keyInput = document.getElementById("gossip-key-input");
+    if (!keyInput || !keyInput.value) {
+        return showAlert("Generate a gossip key first.", true);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(keyInput.value)
+            .then(() => showAlert("Gossip key copied to clipboard!"))
+            .catch(() => fallbackCopy(keyInput));
+    } else {
+        fallbackCopy(keyInput);
+    }
+}
+
+function fallbackCopy(inputEl) {
+    inputEl.select();
+    inputEl.setSelectionRange(0, 99999);
+    try {
+        document.execCommand("copy");
+        showAlert("Gossip key copied to clipboard!");
+    } catch (_) {
+        showAlert("Could not copy key. Please copy it manually.", true);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
