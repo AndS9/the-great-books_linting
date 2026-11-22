@@ -3,7 +3,7 @@ import base64
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response, current_app
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response, current_app, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from .extensions import db
@@ -20,13 +20,16 @@ def require_auth():
         if request.path != "/nightwatch":
             return redirect(url_for("web_ui.nightwatch"))
         return None
-    
     if request.path == "/login":
         return None
     
     token = request.cookies.get("token")
     if not token:
         return redirect(url_for("web_ui.login"))
+    if compare_ip():
+        resp = redirect(url_for("web_ui.login"))
+        resp.delete_cookie("token", path="/")
+        return resp
             
     session_obj = Session.query.filter_by(id=token).first()   
     
@@ -82,6 +85,12 @@ def login_required(f):
         token = request.cookies.get("token", "")
         if not token:
             return jsonify({"error": "Missing session token"}), 401
+
+        if compare_ip():
+            resp = jsonify({"error": "Session invalidated: IP changed"}), 401
+            resp = make_response(resp)
+            resp.delete_cookie("token", path="/")
+            return resp
 
         session_obj = Session.query.filter_by(id=token).first()
         if not session_obj or session_obj.expires_at <= datetime.utcnow():
@@ -637,6 +646,20 @@ def is_banished_ip():
         if(found_user):
             return True
             
+    return False
+
+def compare_ip():
+    ip_now = get_client_ip()
+    token = request.cookies.get("token")
+    if not ip_now or not token:
+        return False
+
+    session_obj = Session.query.filter_by(id=token).first()
+    if session_obj and session_obj.ip_address and session_obj.ip_address != ip_now:
+        session_obj.expires_at = datetime.utcnow()
+        db.session.commit()
+        return True
+
     return False
 
 def save_uploaded_photo(photo, user_id):
