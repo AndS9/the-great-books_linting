@@ -44,7 +44,7 @@ python3 -m venv "${APP_DIR}/venv"
 echo "Налаштування .env..."
 mv /tmp/.env "${APP_DIR}/.env"
 echo "" >> "${APP_DIR}/.env"
-echo "DATABASE_URI=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> "${APP_DIR}/.env"
+echo "DATABASE_URI=postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> "${APP_DIR}/.env"
 chmod 600 "${APP_DIR}/.env"
 
 echo "Запуск міграцій..."
@@ -53,8 +53,15 @@ export FLASK_APP=run.py
 
 if [ "$(hostname)" = "app1" ]; then
     echo "Очікування доступності бази даних ${DB_HOST}:${DB_PORT}..."
+    MAX_RETRIES=30
+    COUNT=0
     until "${APP_DIR}/venv/bin/python" -c "import socket; s = socket.socket(); s.connect(('${DB_HOST}', int('${DB_PORT}'))); s.close()" 2>/dev/null; do
-        sleep 1
+        COUNT=$((COUNT + 1))
+        if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
+            echo "Не вдалося підключитися до бази даних ${DB_HOST}:${DB_PORT} після ${MAX_RETRIES} спроб!" >&2
+            exit 1
+        fi
+        sleep 2
     done
 
     echo "Запуск міграцій та наповнення БД на app1..."
