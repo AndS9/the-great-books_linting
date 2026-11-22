@@ -12,7 +12,7 @@ web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
 @web_ui.before_request
 def require_auth():
-    if request.path in ("/login", "/lord-setup") or request.path.startswith("/static"):
+    if request.path in ("/login", "/lord-setup", "/knight-setup") or request.path.startswith("/static"):
         return None
     token = request.cookies.get("token")
     if not token:
@@ -45,6 +45,10 @@ def profile():
 @web_ui.route("/lord-setup")
 def lord_setup():
     return render_template("lord_setup.html")
+
+@web_ui.route("/knight-setup")
+def knight_setup():
+    return render_template("knight_setup.html")
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -471,3 +475,44 @@ def setup_lord(current_user):
 
     db.session.commit()
     return jsonify({"message": "Lord profile saved"}), 200
+
+
+@api.route("/knights/setup", methods=["POST"])
+@login_required
+def setup_knight(current_user):
+    if current_user.role.role_name.lower() != "knight":
+        return jsonify({"error": "Only knights can access this"}), 403
+
+    house_raw = (request.form.get("house_id") or "").strip()
+    photo = request.files.get("photo")
+
+    if not house_raw:
+        return jsonify({"error": "Great House is required"}), 400
+
+    house = House.query.get(int(house_raw))
+    if not house:
+        return jsonify({"error": "House not found"}), 404
+
+    try:
+        strength = int(request.form.get("strength", 10))
+        defense = int(request.form.get("defense", 10))
+        endurance = int(request.form.get("endurance", 10))
+    except ValueError:
+        return jsonify({"error": "Stats must be numbers"}), 400
+
+    photo_url = save_uploaded_photo(photo, current_user.id)
+    if not photo_url:
+        return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
+
+    current_user.photo_url = photo_url
+    current_user.house_id = house.id
+
+    if not current_user.stats:
+        current_user.stats = Stat(user_id=current_user.id)
+
+    current_user.stats.strength = strength
+    current_user.stats.defense = defense
+    current_user.stats.endurance = endurance
+
+    db.session.commit()
+    return jsonify({"message": "Knight profile saved"}), 200
