@@ -9,7 +9,7 @@ class Config:
         raise RuntimeError("SECRET_KEY is not set in environment or .env file")
 
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI") or (
-        f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}"
+        f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}"
         f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
