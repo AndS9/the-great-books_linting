@@ -8,7 +8,7 @@ from .models import Role, House
 
 def create_app():
     app = Flask(__name__)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=1, x_host=1)
     app.config.from_object(Config)
 
     db.init_app(app)
