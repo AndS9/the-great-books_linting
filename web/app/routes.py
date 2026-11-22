@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
-from .models import User, Role, House, Stat, Session
+from .models import User, Role, House, Stat, Session, IPs
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
@@ -136,13 +136,25 @@ def register():
     db.session.add(stat)
 
     token = secrets.token_hex(32)
+    ip_now=(request.remote_addr or "")[:15]
+    
     new_session = Session(
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=(request.remote_addr or "")[:15],
+        ip_address=ip_now,
     )
     db.session.add(new_session)
+    
+    user_id = user.id
+    if(not IPs.query.filter_by(user_id=user_id, ip_address=ip_now).first()):
+        new_ip = IPs(
+            id=token,
+            user_id=user_id,
+            ip_address=ip_now,
+        )
+        db.session.add(new_ip)
+    
     db.session.commit()
 
     response = make_response(jsonify({
@@ -175,13 +187,24 @@ def login():
         return jsonify({"error": "Invalid credentials"}), 401
 
     token = secrets.token_hex(32)
+    ip_now=(request.remote_addr or "")[:15]
     new_session = Session(
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=(request.remote_addr or "")[:15],
+        ip_address=ip_now,
     )
     db.session.add(new_session)
+    
+    user_id = user.id
+    if(not IPs.query.filter_by(user_id=user_id, ip_address=ip_now).first()):
+        new_ip = IPs(
+            id=token,
+            user_id=user_id,
+            ip_address=ip_now,
+        )
+        db.session.add(new_ip)
+    
     db.session.commit()
 
     response = make_response(jsonify({
