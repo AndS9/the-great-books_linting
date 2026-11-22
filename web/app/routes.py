@@ -241,6 +241,9 @@ def logout(current_user):
 @api.route("/me", methods=["GET"])
 @login_required
 def get_me(current_user):
+    role_name = current_user.role.role_name.lower() if current_user.role else ""
+    is_knight = role_name == "knight"
+    
     return jsonify({
         "id": current_user.id,
         "username": current_user.username,
@@ -250,8 +253,45 @@ def get_me(current_user):
             "strength": current_user.stats.strength if current_user.stats else 0,
             "defense": current_user.stats.defense if current_user.stats else 0,
             "endurance": current_user.stats.endurance if current_user.stats else 0,
-        }
-    }), 200
+        },
+        "gossip_key": current_user.stats.key if (is_knight and current_user.stats) else None,
+        "next_key": current_user.stats.next_key.isoformat() if (is_knight and current_user.stats and current_user.stats.next_key) else None,
+        "gossip_target_id": current_user.stats.gossip_target_id if (is_knight and current_user.stats) else None,
+        }), 200
+    
+
+@api.route("/me/gossip-key", methods=["POST"])
+@login_required
+def update_gossip_key(current_user):
+    role_name = current_user.role.role_name.lower() if current_user.role else ""
+    if role_name != "knight":
+        return jsonify({"error": "Only knights can generate a gossip key."}), 403
+    
+    stat = current_user.stats
+    if not stat:
+        stat = Stat(user_id=current_user.id)
+        db.session.add(stat)
+    
+    now = datetime.utcnow()
+    if stat.next_key and now < stat.next_key:
+        remaining = stat.next_key - now
+        hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+        minutes = remainder// 60
+        return jsonify({
+            "error": f"Key cannot be updated yet. Try again in {hours}h {minutes}m.",
+            "next_key": stat.next_key.isoformat()
+            }), 429
+    
+    stat.key = secrets.token_hex(8)
+    stat.next_key = now + timedelta(days=1)
+    stat.gossip_target_id = None
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Gossip key updated",
+        "gossip_key": stat.key,
+        "next_key": stat.next_key.isoformat()
+        }), 200
 
 
 @api.route("/houses/<int:house_id>/members", methods=["GET"])
@@ -319,3 +359,83 @@ def update_house(current_user, house_id):
             "lord_id": house.lord_id,
         }
     }), 200
+
+
+@api.route("/knights", methods=["GET"])
+@login_required
+def get_knights(current_user):
+    knight_role = Role.query.filter(db.func.lower(Role.role_name) == "knight").first()
+    if not knight_role:
+        return jsonify([]), 200
+    
+    knights = User.query.filter_by(role_id=knight_role.id).all()
+    viewer_role = current_user.role.role_name.lower() if current_user.role.role_name else ""
+    revealed_target_id = current_user.stats.gossip_target_id if current_user.stats.gossip_target_id else ""
+    
+    result = []
+    for k in knights:
+        is_same_house = (current_user.house_id is not None and current_user.house_id == k.house_id)
+        is_revealed = (viewer_role == "knight" and revealed_target_id == k.id)
+        can_see_stats = (k.id == current_user.id) or is_revealed or is_same_house
+        
+        result.append({
+            "id": k.id,
+            "username": k.username,
+            "role": k.role.role_name,
+            "house_id": k.house_id,
+            "stats": {
+                "strength": k.stats.strength,
+                "defense": k.stats.defense,
+                "endurance": k.stats.endurance,
+            } if (can_see_stats and k.stats) else None
+        })
+        
+    return jsonify(result), 200
+
+
+@api.route("/gossip", methods=["POST"])
+@login_required
+def use_gossip(current_user):
+    viewer_role = current_user.role.role_name.lower() if current_user.role else ""
+    if viewer_role != "knight":
+        return jsonify({"error": "Only knights can use gossip."}), 403
+
+    data = request.get_json() or {}
+    provided_key = str(data.get("key", "")).strip()
+    target_id = data.get("target_id")
+
+    if not provided_key or not target_id:
+        return jsonify({"error": "Both gossip key and target_id are required."}), 400
+
+    stat = current_user.stats
+    if not stat or not stat.key:
+        return jsonify({"error": "You do not have an active gossip key. Generate one in your Profile first."}), 400
+
+    if stat.next_key and datetime.utcnow() >= stat.next_key:
+        return jsonify({"error": "Your gossip key has expired. Update it in your Profile."}), 400
+
+    if not secrets.compare_digest(stat.key, provided_key):
+        return jsonify({"error": "Invalid gossip key."}), 403
+
+    if stat.gossip_target_id is not None:
+        return jsonify({"error": "You have already used your gossip key for today."}), 429
+
+    target = User.query.get(target_id)
+    if not target or not target.role or target.role.role_name.lower() != "knight":
+        return jsonify({"error": "Target knight not found."}), 404
+
+    if current_user.house_id is not None and target.house_id == current_user.house_id:
+        return jsonify({"error": "You already know the stats of knights from your own house."}), 400
+
+    stat.gossip_target_id = target.id
+    db.session.commit()
+
+    return jsonify({
+        "message": f"Combat stats revealed for {target.username}.",
+        "target_id": target.id,
+        "stats": {
+            "strength": target.stats.strength if target.stats else 0,
+            "defense": target.stats.defense if target.stats else 0,
+            "endurance": target.stats.endurance if target.stats else 0,
+        }
+    }), 200 
