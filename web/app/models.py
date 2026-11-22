@@ -26,7 +26,6 @@ class User(db.Model):
                             cascade="all, delete-orphan",
                             foreign_keys="Stat.user_id")
     nightwatch = db.Column(db.Boolean, nullable=True)
-    user_ips = db.relationship("IPs", backref="users")
 
 
 class House(db.Model):
@@ -35,6 +34,7 @@ class House(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     motto = db.Column(db.String(100))
+
 
 class Stat(db.Model):
     __tablename__ = "stats"
@@ -55,12 +55,4 @@ class Session(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(15))
-    
-class IPs(db.Model):
-    __tablename__ = "ips"
-    __table_args__ = (db.UniqueConstraint("user_id", "ip_address", name="uq_user_ip"),)
-    
-    ip_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    ip_address = db.Column(db.String(45), nullable=False)
+    ip_address = db.Column(db.String(45))
