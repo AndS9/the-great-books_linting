@@ -115,13 +115,10 @@ def get_houses():
     houses = House.query.all()
     result = []
     for h in houses:
-        lord = User.query.get(h.lord_id) if h.lord_id else None
         result.append({
             "id": h.id,
             "name": h.name,
             "motto": h.motto,
-            "lord_id": h.lord_id,
-            "lord_name": lord.username if lord else None,
         })
     return jsonify(result), 200
 
@@ -344,7 +341,7 @@ def update_house(current_user, house_id):
         return jsonify({"error": "House not found"}), 404
 
     user_role = current_user.role.role_name.lower() if current_user.role else ""
-    is_house_lord = user_role == "noble" or house.lord_id == current_user.id
+    is_house_lord = user_role == "noble"
 
     if current_user.house_id != house_id or not is_house_lord:
         return jsonify({"error": "Access denied. Only lords of this house can edit its info."}), 403
@@ -376,7 +373,6 @@ def update_house(current_user, house_id):
             "id": house.id,
             "name": house.name,
             "motto": house.motto,
-            "lord_id": house.lord_id,
         }
     }), 200
 
@@ -533,10 +529,6 @@ def ban_with_nightwatch(current_user, target_id):
 
     if target_role in ("noble", "knight"):
         if current_user.house_id and target.house_id and current_user.house_id == target.house_id:
-            if target_role == "noble":
-                house = House.query.get(target.house_id)
-                if house and house.lord_id == target.id:
-                    house.lord_id = current_user.id
             Session.query.filter_by(user_id=target.id).delete()
             target.nightwatch = True
             target.house_id = None
@@ -569,8 +561,6 @@ def is_banished_ip():
             return True
             
     return False
-    }), 200
-
 
 def save_uploaded_photo(photo, user_id):
     if not photo or not photo.filename:
@@ -608,8 +598,6 @@ def setup_lord(current_user):
 
     current_user.photo_url = photo_url
     current_user.house_id = house.id
-    if not house.lord_id:
-        house.lord_id = current_user.id
 
     db.session.commit()
     return jsonify({"message": "Lord profile saved"}), 200

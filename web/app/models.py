@@ -35,8 +35,6 @@ class House(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     motto = db.Column(db.String(100))
-    lord_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_house_lord_id"), nullable=True)
-
 
 class Stat(db.Model):
     __tablename__ = "stats"
