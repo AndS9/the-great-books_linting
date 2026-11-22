@@ -14,7 +14,8 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    photo_url = db.Column(db.String(255), nullable=True)
+    photo_url = db.Column(db.Text, nullable=True)
+    is_white_knight = db.Column(db.Boolean, default=False, nullable=False)
     password = db.Column(db.String(180), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
     house_id = db.Column(db.Integer, db.ForeignKey("houses.id"), nullable=True)
@@ -34,8 +35,6 @@ class House(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     motto = db.Column(db.String(100))
-    lord_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_house_lord_id"), nullable=True)
-
 
 class Stat(db.Model):
     __tablename__ = "stats"

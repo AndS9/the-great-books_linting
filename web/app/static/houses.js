@@ -17,7 +17,7 @@ function canEditHouse(house) {
     if (!currentUser) return false;
     if (currentUser.house_id !== house.id) return false;
     const role = (currentUser.role || "").toLowerCase();
-    return role === "noble" || house.lord_id === currentUser.id;
+    return role === "noble";
 }
 
 function renderHousesPage() {
@@ -32,14 +32,12 @@ function renderHousesPage() {
         const motto = getHouseMotto(h);
         const isMyHouse = currentUser && currentUser.house_id === h.id;
         const editable = canEditHouse(h);
-        const lordStatus = h.lord_id ? "Lord ID #" + h.lord_id : "Seat Vacant (No Lord assigned)";
 
         return (
             '<div class="house-card">' +
             '<div class="house-banner ' + bannerClass + '">House ' + h.name + '</div>' +
             '<div class="house-card-body">' +
             '<div class="card-motto">"' + motto + '"</div>' +
-            '<p class="muted">' + lordStatus + '</p>' +
             (isMyHouse ? '<span class="role-badge">Your Allegiance</span>' : '') +
             (editable
                 ? '<button class="btn-primary" style="padding: 0.5rem; font-size: 0.9rem;" onclick="openEditHouseForm(' + h.id + ')">✏️ Edit House Info</button>'

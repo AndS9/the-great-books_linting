@@ -1,4 +1,8 @@
 import os
+<<<<<<< HEAD
+=======
+import base64
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
@@ -13,7 +17,7 @@ web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
 @web_ui.before_request
 def require_auth():
-    if request.path.startswith("/static"):
+    if request.path in ("/login", "/lord-setup", "/knight-setup") or request.path.startswith("/static"):
         return None
     if is_banished_ip():
         if request.path != "/nightwatch":
@@ -64,6 +68,14 @@ def profile():
 @web_ui.route("/nightwatch")
 def nightwatch():
     return render_template("nightwatch.html")
+  
+@web_ui.route("/lord-setup")
+def lord_setup():
+    return render_template("lord_setup.html")
+
+@web_ui.route("/knight-setup")
+def knight_setup():
+    return render_template("knight_setup.html")
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -105,15 +117,14 @@ def get_roles():
 @api.route("/houses", methods=["GET"])
 def get_houses():
     houses = House.query.all()
-    return jsonify([
-        {
+    result = []
+    for h in houses:
+        result.append({
             "id": h.id,
             "name": h.name,
             "motto": h.motto,
-            "lord_id": h.lord_id,
-        }
-        for h in houses
-    ]), 200
+        })
+    return jsonify(result), 200
 
 
 @api.route("/auth/register", methods=["POST"])
@@ -122,7 +133,6 @@ def register():
     username = data.get("username", "").strip()
     password = data.get("password", "")
     role_id = data.get("role_id")
-    house_id = data.get("house_id")
 
     if not username or not password or not role_id:
         return jsonify({"error": "username, password and role_id are required"}), 400
@@ -134,36 +144,19 @@ def register():
     if not role:
         return jsonify({"error": "Invalid role_id"}), 400
 
-    if house_id and not House.query.get(house_id):
-        return jsonify({"error": "Invalid house_id"}), 400
-
     user = User(
         username=username,
         password=generate_password_hash(password),
         role_id=role.id,
-        house_id=house_id,
+        house_id=None,
+        is_white_knight=False,
     )
     db.session.add(user)
     db.session.flush()
 
-    if house_id and role.role_name.lower() == "noble":
-        house = House.query.get(house_id)
-        if house and not house.lord_id:
-            house.lord_id = user.id
-
-    base_stats = {
-        "noble": (10, 12, 12),
-        "knight": (16, 15, 14),
-        "commonfolk": (12, 10, 16),
-    }.get(role.role_name.lower(), (10, 10, 10))
-
-    stat = Stat(
-        user_id=user.id,
-        strength=base_stats[0],
-        defense=base_stats[1],
-        endurance=base_stats[2],
-    )
-    db.session.add(stat)
+    if role.role_name.lower() == "knight":
+        stat = Stat(user_id=user.id, strength=10, defense=10, endurance=10)
+        db.session.add(stat)
 
     token = secrets.token_hex(32)
     ip_now=get_client_ip()
@@ -276,6 +269,10 @@ def get_me(current_user):
         "role": current_user.role.role_name,
         "house_id": current_user.house_id,
         "photo_url": current_user.photo_url,
+<<<<<<< HEAD
+=======
+        "is_white_knight": current_user.is_white_knight,
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
         "stats": {
             "strength": current_user.stats.strength if current_user.stats else 0,
             "defense": current_user.stats.defense if current_user.stats else 0,
@@ -284,6 +281,7 @@ def get_me(current_user):
         "gossip_key": current_user.stats.key if (is_knight and current_user.stats) else None,
         "next_key": current_user.stats.next_key.isoformat() if (is_knight and current_user.stats and current_user.stats.next_key) else None,
         "gossip_target_id": current_user.stats.gossip_target_id if (is_knight and current_user.stats) else None,
+<<<<<<< HEAD
         }), 200
 
 
@@ -372,6 +370,10 @@ def update_me(current_user):
         }
     }), 200
     
+=======
+    }), 200
+
+>>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 
 @api.route("/me/gossip-key", methods=["POST"])
 @login_required
@@ -389,11 +391,11 @@ def update_gossip_key(current_user):
     if stat.next_key and now < stat.next_key:
         remaining = stat.next_key - now
         hours, remainder = divmod(int(remaining.total_seconds()), 3600)
-        minutes = remainder// 60
+        minutes = remainder // 60
         return jsonify({
             "error": f"Key cannot be updated yet. Try again in {hours}h {minutes}m.",
             "next_key": stat.next_key.isoformat()
-            }), 429
+        }), 429
     
     stat.key = secrets.token_hex(8)
     stat.next_key = now + timedelta(days=1)
@@ -404,7 +406,7 @@ def update_gossip_key(current_user):
         "message": "Gossip key updated",
         "gossip_key": stat.key,
         "next_key": stat.next_key.isoformat()
-        }), 200
+    }), 200
 
 
 @api.route("/houses/<int:house_id>/members", methods=["GET"])
@@ -437,7 +439,7 @@ def update_house(current_user, house_id):
         return jsonify({"error": "House not found"}), 404
 
     user_role = current_user.role.role_name.lower() if current_user.role else ""
-    is_house_lord = user_role == "noble" or house.lord_id == current_user.id
+    is_house_lord = user_role == "noble"
 
     if current_user.house_id != house_id or not is_house_lord:
         return jsonify({"error": "Access denied. Only lords of this house can edit its info."}), 403
@@ -469,7 +471,6 @@ def update_house(current_user, house_id):
             "id": house.id,
             "name": house.name,
             "motto": house.motto,
-            "lord_id": house.lord_id,
         }
     }), 200
 
@@ -489,13 +490,15 @@ def get_knights(current_user):
     for k in knights:
         is_same_house = (current_user.house_id is not None and current_user.house_id == k.house_id)
         is_revealed = (viewer_role == "knight" and revealed_target_id == k.id)
-        can_see_stats = (k.id == current_user.id) or is_revealed or is_same_house
+        can_see_stats = k.is_white_knight or (k.id == current_user.id) or is_revealed or is_same_house
         
         result.append({
             "id": k.id,
             "username": k.username,
             "role": k.role.role_name,
             "house_id": k.house_id,
+            "photo_url": k.photo_url,
+            "is_white_knight": k.is_white_knight,
             "stats": {
                 "strength": k.stats.strength,
                 "defense": k.stats.defense,
@@ -504,6 +507,27 @@ def get_knights(current_user):
         })
         
     return jsonify(result), 200
+
+
+@api.route("/lords", methods=["GET"])
+@login_required
+def get_lords(current_user):
+    noble_role = Role.query.filter(db.func.lower(Role.role_name) == "noble").first()
+    if not noble_role:
+        return jsonify([]), 200
+
+    lords = User.query.filter_by(role_id=noble_role.id).all()
+    return jsonify([
+        {
+            "id": l.id,
+            "username": l.username,
+            "role": l.role.role_name,
+            "house_id": l.house_id,
+            "photo_url": l.photo_url,
+            "stats": None
+        }
+        for l in lords
+    ]), 200
 
 
 @api.route("/gossip", methods=["POST"])
@@ -603,10 +627,6 @@ def ban_with_nightwatch(current_user, target_id):
 
     if target_role in ("noble", "knight"):
         if current_user.house_id and target.house_id and current_user.house_id == target.house_id:
-            if target_role == "noble":
-                house = House.query.get(target.house_id)
-                if house and house.lord_id == target.id:
-                    house.lord_id = current_user.id
             Session.query.filter_by(user_id=target.id).delete()
             target.nightwatch = True
             target.house_id = None
@@ -639,3 +659,88 @@ def is_banished_ip():
             return True
             
     return False
+
+def save_uploaded_photo(photo, user_id):
+    if not photo or not photo.filename:
+        return None
+    ext = photo.filename.rsplit(".", 1)[-1].lower()
+    if ext not in ("png", "jpg", "jpeg", "webp"):
+        return None
+    mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
+    raw_bytes = photo.read()
+    if not raw_bytes:
+        return None
+    encoded = base64.b64encode(raw_bytes).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+@api.route("/lords/setup", methods=["POST"])
+@login_required
+def setup_lord(current_user):
+    if current_user.role.role_name.lower() != "noble":
+        return jsonify({"error": "Only lords can access this"}), 403
+
+    house_raw = (request.form.get("house_id") or "").strip()
+    photo = request.files.get("photo")
+
+    if not house_raw:
+        return jsonify({"error": "House is required"}), 400
+
+    house = House.query.get(int(house_raw))
+    if not house:
+        return jsonify({"error": "House not found"}), 404
+
+    photo_url = save_uploaded_photo(photo, current_user.id)
+    if not photo_url:
+        return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
+
+    current_user.photo_url = photo_url
+    current_user.house_id = house.id
+
+    db.session.commit()
+    return jsonify({"message": "Lord profile saved"}), 200
+
+
+@api.route("/knights/setup", methods=["POST"])
+@login_required
+def setup_knight(current_user):
+    if current_user.role.role_name.lower() != "knight":
+        return jsonify({"error": "Only knights can access this"}), 403
+
+    is_white_knight = request.form.get("is_white_knight") == "true"
+    house_raw = (request.form.get("house_id") or "").strip()
+    photo = request.files.get("photo")
+
+    try:
+        strength = int(request.form.get("strength", 10))
+        defense = int(request.form.get("defense", 10))
+        endurance = int(request.form.get("endurance", 10))
+    except ValueError:
+        return jsonify({"error": "Stats must be numbers"}), 400
+
+    photo_url = save_uploaded_photo(photo, current_user.id)
+    if not photo_url:
+        return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
+
+    current_user.photo_url = photo_url
+    current_user.is_white_knight = is_white_knight
+
+    if is_white_knight:
+        current_user.house_id = None
+    elif house_raw:
+        house = House.query.get(int(house_raw))
+        if not house:
+            return jsonify({"error": "House not found"}), 404
+        current_user.house_id = house.id
+    else:
+        return jsonify({"error": "Great House is required for sworn knights"}), 400
+
+    if not current_user.stats:
+        current_user.stats = Stat(user_id=current_user.id)
+
+    current_user.stats.strength = strength
+    current_user.stats.defense = defense
+    current_user.stats.endurance = endurance
+
+    db.session.commit()
+    return jsonify({"message": "Knight profile saved"}), 200

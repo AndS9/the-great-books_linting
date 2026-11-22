@@ -20,7 +20,11 @@ async function apiFetch(endpoint, options = {}) {
             ...options.headers
         };
 
-    const response = await fetch(API_BASE + endpoint, { ...options, headers });
+    const response = await fetch(API_BASE + endpoint, {
+        credentials: "same-origin",
+        ...options,
+        headers
+    });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
         throw new Error(data.error || "Request failed (" + response.status + ")");

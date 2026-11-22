@@ -122,7 +122,6 @@ flask db upgrade # to apply the changes to the database
 - id - int, primary key
 - name - varchar(50), not null, unique
 - motto - varchar(100)
-- lord_id - int, not null (foreign key for user)
 
 #### **stats** - *(knight stats and gossip)*
 
@@ -172,7 +171,7 @@ The application provides a server-rendered web interface with authentication gua
 ### General (Public)
 
 - `GET /api/roles` - get all roles (`noble`, `knight`, `commonfolk`)
-- `GET /api/houses` - get all houses with their names, mottos, and lord IDs
+- `GET /api/houses` - get all houses with their names and mottos
 
 ### Authentication
 
