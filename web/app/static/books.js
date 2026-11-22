@@ -46,7 +46,9 @@ async function loadRealmRoster() {
                 console.warn(err.message);
             }
         } else {
-            noticeText = "You are not sworn to any Great House. Combat stats of noble houses remain sealed.";
+            noticeText = currentUser.is_white_knight
+                ? "Sworn to the Kingsguard: only your own combat stats are visible without Gossip."
+                : "You are not sworn to any Great House. Combat stats of noble houses remain sealed.";
         }
     } else {
         noticeText = "Guest view: Sign in and swear allegiance to a Great House to inspect your housemates' combat stats.";
@@ -113,7 +115,9 @@ function renderBook(targetRole) {
 function renderCharacterCard(person, bookRole) {
     const houseObj = housesMap[person.house_id];
     const houseName = houseObj ? houseObj.name : null;
-    const houseLabel = houseName ? "House " + houseName : (bookRole === "noble" ? "Great House" : "Free Banner");
+    const houseLabel = person.is_white_knight
+        ? "White Knight (Kingsguard)"
+        : (houseName ? "House " + houseName : (bookRole === "noble" ? "Great House" : "Free Banner"));
     const motto = houseName && HOUSE_MOTTOS[houseName]
         ? HOUSE_MOTTOS[houseName]
         : (bookRole === "noble" ? "By Right of Blood" : "Sword for Hire");
@@ -129,9 +133,10 @@ function renderCharacterCard(person, bookRole) {
     const revealedByGossip = activeTargetId === person.id;
 
     const isSelf = currentUser && currentUser.id === person.id;
-    const isSameHouse = currentUser && currentUser.house_id !== null && currentUser.house_id === person.house_id;
+    const isSameHouse = currentUser && !currentUser.is_white_knight &&
+        currentUser.house_id !== null && currentUser.house_id === person.house_id;
 
-    const canSeeStats = isSelf || revealedByGossip || isSameHouse;
+    const canSeeStats = Boolean(person.is_white_knight) || isSelf || revealedByGossip || isSameHouse;
 
     const isKnightViewer = currentUser && currentUser.role.toLowerCase() === "knight";
     const alreadyUsedToday = activeTargetId !== null;
@@ -169,7 +174,7 @@ function renderCharacterCard(person, bookRole) {
         '<div class="knight-card">' +
         '<div class="card-crest-bg ' + bannerClass + '">' +
         avatarHtml +
-        '<span class="card-role-tag">' + person.role + '</span>' +
+        '<span class="card-role-tag">' + (person.is_white_knight ? "white knight" : person.role) + '</span>' +
         '</div>' +
         '<div class="card-body">' +
         '<div class="card-house">' + houseLabel + '</div>' +

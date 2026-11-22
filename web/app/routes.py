@@ -120,6 +120,7 @@ def register():
         password=generate_password_hash(password),
         role_id=role.id,
         house_id=None,
+        is_white_knight=False,
     )
     db.session.add(user)
     db.session.flush()
@@ -220,6 +221,7 @@ def get_me(current_user):
         "role": current_user.role.role_name,
         "house_id": current_user.house_id,
         "photo_url": current_user.photo_url,
+        "is_white_knight": current_user.is_white_knight,
         "stats": {
             "strength": current_user.stats.strength if current_user.stats else 0,
             "defense": current_user.stats.defense if current_user.stats else 0,
@@ -347,7 +349,7 @@ def get_knights(current_user):
     for k in knights:
         is_same_house = (current_user.house_id is not None and current_user.house_id == k.house_id)
         is_revealed = (viewer_role == "knight" and revealed_target_id == k.id)
-        can_see_stats = (k.id == current_user.id) or is_revealed or is_same_house
+        can_see_stats = k.is_white_knight or (k.id == current_user.id) or is_revealed or is_same_house
         
         result.append({
             "id": k.id,
@@ -355,6 +357,7 @@ def get_knights(current_user):
             "role": k.role.role_name,
             "house_id": k.house_id,
             "photo_url": k.photo_url,
+            "is_white_knight": k.is_white_knight,
             "stats": {
                 "strength": k.stats.strength,
                 "defense": k.stats.defense,
@@ -483,15 +486,9 @@ def setup_knight(current_user):
     if current_user.role.role_name.lower() != "knight":
         return jsonify({"error": "Only knights can access this"}), 403
 
+    is_white_knight = request.form.get("is_white_knight") == "true"
     house_raw = (request.form.get("house_id") or "").strip()
     photo = request.files.get("photo")
-
-    if not house_raw:
-        return jsonify({"error": "Great House is required"}), 400
-
-    house = House.query.get(int(house_raw))
-    if not house:
-        return jsonify({"error": "House not found"}), 404
 
     try:
         strength = int(request.form.get("strength", 10))
@@ -505,7 +502,17 @@ def setup_knight(current_user):
         return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
 
     current_user.photo_url = photo_url
-    current_user.house_id = house.id
+    current_user.is_white_knight = is_white_knight
+
+    if is_white_knight:
+        current_user.house_id = None
+    elif house_raw:
+        house = House.query.get(int(house_raw))
+        if not house:
+            return jsonify({"error": "House not found"}), 404
+        current_user.house_id = house.id
+    else:
+        return jsonify({"error": "Great House is required for sworn knights"}), 400
 
     if not current_user.stats:
         current_user.stats = Stat(user_id=current_user.id)

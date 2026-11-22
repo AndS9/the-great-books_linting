@@ -26,12 +26,13 @@ async function loadProfile() {
         }
         profUsername.textContent = me.username;
         const profRole = document.getElementById("prof-role");
-        if (profRole) profRole.textContent = me.role;
+        if (profRole) profRole.textContent = me.is_white_knight ? "White Knight (Kingsguard)" : me.role;
         const profHouse = document.getElementById("prof-house");
         if (profHouse) {
-            profHouse.textContent = houseName ? "House " + houseName : "Free Rider / Commonfolk";
+            profHouse.textContent = me.is_white_knight
+                ? "Kingsguard (Sworn to no Great House)"
+                : (houseName ? "House " + houseName : "Free Rider / Commonfolk");
         }
-
         const isKnight = (me.role || "").toLowerCase() === "knight";
         const isCommonfolk = (me.role || "").toLowerCase() === "commonfolk";
 

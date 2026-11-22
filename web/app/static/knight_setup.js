@@ -1,6 +1,7 @@
 async function submitKnightSetup(e) {
     e.preventDefault();
 
+    const isWhite = document.getElementById("reg-white-knight").checked;
     const houseId = document.getElementById("reg-house").value;
     const strength = document.getElementById("knight-str").value;
     const defense = document.getElementById("knight-def").value;
@@ -12,6 +13,7 @@ async function submitKnightSetup(e) {
     }
 
     const formData = new FormData();
+    formData.append("is_white_knight", isWhite ? "true" : "false");
     formData.append("house_id", houseId);
     formData.append("strength", strength);
     formData.append("defense", defense);

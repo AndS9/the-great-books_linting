@@ -15,6 +15,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     photo_url = db.Column(db.Text, nullable=True)
+    is_white_knight = db.Column(db.Boolean, default=False, nullable=False)
     password = db.Column(db.String(180), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
     house_id = db.Column(db.Integer, db.ForeignKey("houses.id"), nullable=True)
