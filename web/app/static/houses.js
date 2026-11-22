@@ -32,7 +32,9 @@ function renderHousesPage() {
         const motto = getHouseMotto(h);
         const isMyHouse = currentUser && currentUser.house_id === h.id;
         const editable = canEditHouse(h);
-        const lordStatus = h.lord_id ? "Lord ID #" + h.lord_id : "Seat Vacant (No Lord assigned)";
+        const lordStatus = h.lord_name
+            ? "Lord: " + h.lord_name
+            : (h.lord_id ? "Lord ID #" + h.lord_id : "Seat Vacant (No Lord assigned)");
 
         return (
             '<div class="house-card">' +
