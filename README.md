@@ -106,7 +106,7 @@ flask db upgrade # to apply the changes to the database
 ### users
 
 - id - int, primary key
-- username - varchar(50), not null, unique
+- username - varchar(20), not null, unique
 - photo_url - varchar(255)
 - password - varchar(255), not null (encrypted password)
 - role_id - int, not null (foreign key for role)
@@ -120,15 +120,16 @@ flask db upgrade # to apply the changes to the database
 #### **houses**
 
 - id - int, primary key
-- name - varchar(50), not null, unique
-- motto - varchar(100)
+- name - varchar(20), (min 5, max 20), not null, unique
+- motto - varchar(30), (min 5, max 30), not null
+- lord_id - int, not null (foreign key for user)
 
 #### **stats** - *(knight stats and gossip)*
 
 - user_id - int, primary key (foreign key for user)
-- strength - int
-- defense - int
-- endurance - int
+- strength - int (min 0, max 20)
+- defense - int (min 0, max 20)
+- endurance - int (min 0, max 20)
 - key - varchar(64)
 - next_key - datetime
 - gossip_target_id - int (foreign key for user)
