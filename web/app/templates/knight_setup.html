@@ -8,6 +8,17 @@
         <form id="knight-setup-form" class="auth-form" onsubmit="submitKnightSetup(event)">
             <h2>Knight Details</h2>
 
+            <div id="white-knight-group"
+                style="margin-top: 0.25rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.03);">
+                <label for="reg-white-knight"
+                    style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 0.65rem; margin: 0 !important; cursor: pointer; text-align: left;">
+                    <input type="checkbox" id="reg-white-knight" onchange="onWhiteKnightToggle()"
+                        style="width: 18px !important; height: 18px !important; min-width: 18px; margin: 0 !important; accent-color: #d4af37; cursor: pointer; flex-shrink: 0;">
+                    <span style="line-height: 1.3;">Is White Knight? <small class="muted">(Kingsguard — sworn to no
+                            Great House)</small></span>
+                </label>
+            </div>
+
             <label id="reg-house-label">Great House Allegiance
                 <select id="reg-house" required>
                     <option value="">Choose a Great House...</option>

@@ -145,3 +145,16 @@ function clearSelectedPhoto(e) {
     if (previewWrap) previewWrap.classList.add("hidden");
     if (placeholder) placeholder.classList.remove("hidden");
 }
+
+function onWhiteKnightToggle() {
+    const wkCheckbox = document.getElementById("reg-white-knight");
+    const houseSelect = document.getElementById("reg-house");
+    if (!wkCheckbox || !houseSelect) return;
+
+    if (wkCheckbox.checked) {
+        houseSelect.value = "";
+        houseSelect.disabled = true;
+    } else {
+        houseSelect.disabled = false;
+    }
+}
