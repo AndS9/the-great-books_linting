@@ -3,10 +3,10 @@ const REALM_ROSTER_SEED = [
     { id: 902, username: "Ser Brienne of Tarth", role: "knight", house_name: "Stark", is_mock: true, stats: { strength: 17, defense: 17, endurance: 16 } },
     { id: 903, username: "Ser Jorah Mormont", role: "knight", house_name: "Targaryen", is_mock: true, stats: { strength: 16, defense: 15, endurance: 16 } },
     { id: 904, username: "Ser Barristan Selmy", role: "knight", house_name: "Baratheon", is_mock: true, stats: { strength: 17, defense: 18, endurance: 14 } },
-    { id: 905, username: "Eddard Stark", role: "noble", house_name: "Stark", is_mock: true, stats: { strength: 14, defense: 15, endurance: 14 } },
-    { id: 906, username: "Tywin Lannister", role: "noble", house_name: "Lannister", is_mock: true, stats: { strength: 11, defense: 14, endurance: 12 } },
-    { id: 907, username: "Daenerys Targaryen", role: "noble", house_name: "Targaryen", is_mock: true, stats: { strength: 10, defense: 13, endurance: 15 } },
-    { id: 908, username: "Robert Baratheon", role: "noble", house_name: "Baratheon", is_mock: true, stats: { strength: 19, defense: 14, endurance: 13 } }
+    { id: 905, username: "Eddard Stark", role: "noble", house_name: "Stark", is_mock: true, stats: null },
+    { id: 906, username: "Tywin Lannister", role: "noble", house_name: "Lannister", is_mock: true, stats: null },
+    { id: 907, username: "Daenerys Targaryen", role: "noble", house_name: "Targaryen", is_mock: true, stats: null },
+    { id: 908, username: "Robert Baratheon", role: "noble", house_name: "Baratheon", is_mock: true, stats: null }
 ];
 
 let allRealmMembers = [];
@@ -23,8 +23,11 @@ async function loadRealmRoster() {
 
     if (currentUser) {
         try {
-            const knights = await apiFetch("/knights");
-            dbMembers.push(...knights);
+            const [knights, lords] = await Promise.all([
+                apiFetch("/knights"),
+                apiFetch("/lords")
+            ]);
+            dbMembers.push(...knights, ...lords);
         } catch (err) {
             console.warn(err.message);
         }
@@ -110,61 +113,69 @@ function renderBook(targetRole) {
 function renderCharacterCard(person, bookRole) {
     const houseObj = housesMap[person.house_id];
     const houseName = houseObj ? houseObj.name : null;
-    const houseLabel = houseName ? "House " + houseName : "Free Banner";
+    const houseLabel = houseName ? "House " + houseName : (bookRole === "noble" ? "Great House" : "Free Banner");
     const motto = houseName && HOUSE_MOTTOS[houseName]
         ? HOUSE_MOTTOS[houseName]
         : (bookRole === "noble" ? "By Right of Blood" : "Sword for Hire");
     const bannerClass = getHouseBannerClass(houseName);
     const initials = getInitials(person.username);
 
+    const avatarHtml = person.photo_url
+        ? '<img src="' + person.photo_url + '" alt="" class="crest-monogram" style="object-fit: cover; padding: 0;" onerror="this.outerHTML=\'<div class=\\\'crest-monogram\\\'>' + initials + '</div>\'">'
+        : '<div class="crest-monogram">' + initials + '</div>';
+
     const mockTargetId = getMockGossipTargetId();
     const activeTargetId = (currentUser && currentUser.gossip_target_id) || mockTargetId;
     const revealedByGossip = activeTargetId === person.id;
 
-    const canSeeStats = revealedByGossip || (currentUser && (
-        currentUser.role === "noble" ||
-        (currentUser.house_id && currentUser.house_id === person.house_id)
-    ));
+    const isSelf = currentUser && currentUser.id === person.id;
+    const isSameHouse = currentUser && currentUser.house_id !== null && currentUser.house_id === person.house_id;
+
+    const canSeeStats = isSelf || revealedByGossip || isSameHouse;
 
     const isKnightViewer = currentUser && currentUser.role.toLowerCase() === "knight";
     const alreadyUsedToday = activeTargetId !== null;
 
-    let statsHtml = "";
-    if (canSeeStats && person.stats) {
-        statsHtml =
-            '<div class="stats-visible">' +
-            '<span>STR: <b>' + person.stats.strength + '</b></span>' +
-            '<span>DEF: <b>' + person.stats.defense + '</b></span>' +
-            '<span>END: <b>' + person.stats.endurance + '</b></span>' +
-            '</div>';
-    } else {
-        statsHtml = '<div class="stats-locked">🔒 Stats hidden (Same House & Lords only)</div>';
+    let statsSectionHtml = "";
+    if (bookRole !== "noble") {
+        let statsHtml = "";
+        if (canSeeStats && person.stats) {
+            statsHtml =
+                '<div class="stats-visible">' +
+                '<span>STR: <b>' + person.stats.strength + '</b></span>' +
+                '<span>DEF: <b>' + person.stats.defense + '</b></span>' +
+                '<span>END: <b>' + person.stats.endurance + '</b></span>' +
+                '</div>';
+        } else {
+            statsHtml = '<div class="stats-locked">🔒 Stats hidden (Same House only)</div>';
 
-        if (isKnightViewer && bookRole === "knight") {
-            if (alreadyUsedToday) {
-                statsHtml += '<button class="btn-gossip" disabled>👁️ Daily Gossip Used</button>';
-            } else {
-                statsHtml +=
-                    '<button type="button" class="btn-gossip" onclick="toggleGossipForm(' + person.id + ')">👁️ Use Gossip Key</button>' +
-                    '<div id="gossip-form-' + person.id + '" class="hidden" style="margin-top: 0.5rem; display: flex; gap: 0.4rem;">' +
-                    '<input type="text" id="gossip-input-' + person.id + '" class="search-input" placeholder="Paste gossip key..." style="padding: 0.4rem; font-size: 0.85rem;">' +
-                    '<button type="button" class="btn-primary" style="margin-top: 0; padding: 0.4rem 0.7rem; font-size: 0.85rem;" onclick="submitGossip(' + person.id + ')">Unlock</button>' +
-                    '</div>';
+            if (isKnightViewer && bookRole === "knight") {
+                if (alreadyUsedToday) {
+                    statsHtml += '<button class="btn-gossip" disabled>👁️ Daily Gossip Used</button>';
+                } else {
+                    statsHtml +=
+                        '<button type="button" class="btn-gossip" onclick="toggleGossipForm(' + person.id + ')">👁️ Use Gossip Key</button>' +
+                        '<div id="gossip-form-' + person.id + '" class="hidden" style="margin-top: 0.5rem; display: flex; gap: 0.4rem;">' +
+                        '<input type="text" id="gossip-input-' + person.id + '" class="search-input" placeholder="Paste gossip key..." style="padding: 0.4rem; font-size: 0.85rem;">' +
+                        '<button type="button" class="btn-primary" style="margin-top: 0; padding: 0.4rem 0.7rem; font-size: 0.85rem;" onclick="submitGossip(' + person.id + ')">Unlock</button>' +
+                        '</div>';
+                }
             }
         }
+        statsSectionHtml = '<div class="card-stats">' + statsHtml + '</div>';
     }
 
     return (
         '<div class="knight-card">' +
         '<div class="card-crest-bg ' + bannerClass + '">' +
-        '<div class="crest-monogram">' + initials + '</div>' +
+        avatarHtml +
         '<span class="card-role-tag">' + person.role + '</span>' +
         '</div>' +
         '<div class="card-body">' +
         '<div class="card-house">' + houseLabel + '</div>' +
         '<div class="card-motto">"' + motto + '"</div>' +
         '<div class="card-name">' + person.username + '</div>' +
-        '<div class="card-stats">' + statsHtml + '</div>' +
+        statsSectionHtml +
         '</div>' +
         '</div>'
     );
