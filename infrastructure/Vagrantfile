@@ -63,7 +63,7 @@ Vagrant.configure("2") do |config|
     app.vm.provider "virtualbox" do |vb|
       vb.name = "Vagrant-app1"
       vb.cpus = 1
-      vb.memory = 512
+      vb.memory = 1024
       vb.linked_clone = true
     end
 
@@ -85,7 +85,7 @@ Vagrant.configure("2") do |config|
     app.vm.provider "virtualbox" do |vb|
       vb.name = "Vagrant-app2"
       vb.cpus = 1
-      vb.memory = 512
+      vb.memory = 1024
       vb.linked_clone = true
     end
 
