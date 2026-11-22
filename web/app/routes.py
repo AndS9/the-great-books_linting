@@ -136,6 +136,9 @@ def register():
     if not username or not password or not role_id:
         return jsonify({"error": "username, password and role_id are required"}), 400
 
+    if len(username) < 5 or len(username) > 20:
+        return jsonify({"error": "Username must be between 5 and 20 characters"}), 400
+
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already taken"}), 409
 
@@ -355,8 +358,8 @@ def update_house(current_user, house_id):
         new_name = str(data["name"]).strip()
         if not new_name:
             return jsonify({"error": "House name cannot be empty"}), 400
-        if len(new_name) > 50:
-            return jsonify({"error": "House name must be 50 characters or fewer"}), 400
+        if len(new_name) < 5 or len(new_name) > 20:
+            return jsonify({"error": "House name must be between 5 and 20 characters"}), 400
         existing = House.query.filter(House.name == new_name, House.id != house_id).first()
         if existing:
             return jsonify({"error": "A house with this name already exists"}), 409
@@ -364,9 +367,11 @@ def update_house(current_user, house_id):
 
     if "motto" in data:
         new_motto = str(data["motto"]).strip()
-        if len(new_motto) > 100:
-            return jsonify({"error": "Motto must be 100 characters or fewer"}), 400
-        house.motto = new_motto if new_motto else None
+        if not new_motto:
+            return jsonify({"error": "House motto cannot be empty"}), 400
+        if len(new_motto) < 5 or len(new_motto) > 30:
+            return jsonify({"error": "Motto must be between 5 and 30 characters"}), 400
+        house.motto = new_motto
 
     db.session.commit()
 
@@ -631,6 +636,10 @@ def setup_knight(current_user):
         endurance = int(request.form.get("endurance", 10))
     except ValueError:
         return jsonify({"error": "Stats must be numbers"}), 400
+
+    for stat_val, stat_name in [(strength, "Strength"), (defense, "Defense"), (endurance, "Endurance")]:
+        if not (0 <= stat_val <= 20):
+            return jsonify({"error": f"{stat_name} must be between 0 and 20"}), 400
 
     photo_url = save_uploaded_photo(photo, current_user.id)
     if not photo_url:

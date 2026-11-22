@@ -1,5 +1,6 @@
 from datetime import datetime
 from .extensions import db
+from sqlalchemy import CheckConstraint
 
 
 class Role(db.Model):
@@ -16,7 +17,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     photo_url = db.Column(db.Text, nullable=True)
     is_white_knight = db.Column(db.Boolean, default=False, nullable=False)
-    password = db.Column(db.String(180), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
     house_id = db.Column(db.Integer, db.ForeignKey("houses.id"), nullable=True)
 
@@ -28,13 +29,22 @@ class User(db.Model):
     nightwatch = db.Column(db.Boolean, nullable=True)
     user_ips = db.relationship("IPs", backref="users")
 
+    __table_args__ = (
+        CheckConstraint("length(username) >= 5 AND length(username) <= 20", name="check_username"),
+    )
+
 
 class House(db.Model):
     __tablename__ = "houses"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
-    motto = db.Column(db.String(100))
+    name = db.Column(db.String(20), unique=True, nullable=False)
+    motto = db.Column(db.String(30), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("length(name) >= 5 AND length(name) <= 20", name="check_name"),
+        CheckConstraint("length(motto) >= 5 AND length(motto) <= 30", name="check_motto"),
+    )
     lord_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_house_lord_id"), nullable=True)
 
 
@@ -48,6 +58,12 @@ class Stat(db.Model):
     key = db.Column(db.String(64), nullable=True)
     next_key = db.Column(db.DateTime, nullable=True)
     gossip_target_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("strength >= 0 AND strength <= 20", name="check_strength"),
+        CheckConstraint("defense >= 0 AND defense <= 20", name="check_defense"),
+        CheckConstraint("endurance >= 0 AND endurance <= 20", name="check_endurance"),
+    )
 
 
 class Session(db.Model):
