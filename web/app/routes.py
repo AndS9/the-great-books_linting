@@ -5,19 +5,38 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
 from .models import User, Role, House, Stat, Session, IPs
+from sqlalchemy.exc import IntegrityError
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 
 @web_ui.before_request
 def require_auth():
-    if request.path == "/login" or request.path.startswith("/static"):
+    if request.path.startswith("/static"):
         return None
+    if is_banished_ip():
+        if request.path != "/nightwatch":
+            return redirect(url_for("web_ui.nightwatch"))
+        return None
+    
+    if request.path == "/login":
+        return None
+    
     token = request.cookies.get("token")
     if not token:
         return redirect(url_for("web_ui.login"))
-    session_obj = Session.query.filter_by(id=token).first()
+            
+    session_obj = Session.query.filter_by(id=token).first()   
+    
     if not session_obj or session_obj.expires_at <= datetime.utcnow():
         return redirect(url_for("web_ui.login"))
+    else:
+        current_user = User.query.get(session_obj.user_id)
+        if(current_user and current_user.nightwatch):
+            record_user_ip(current_user.id, get_client_ip())
+            db.session.commit()
+            if request.path != "/nightwatch":
+                return redirect(url_for("web_ui.nightwatch"))
+            return None
 
 @web_ui.route("/")
 @web_ui.route("/houses")
@@ -40,6 +59,10 @@ def login():
 def profile():
     return render_template("profile.html")
 
+@web_ui.route("/nightwatch")
+def nightwatch():
+    return render_template("nightwatch.html")
+
 api = Blueprint("api", __name__, url_prefix="/api")
 
 def login_required(f):
@@ -56,6 +79,11 @@ def login_required(f):
         current_user = User.query.get(session_obj.user_id)
         if not current_user:
             return jsonify({"error": "User not found"}), 404
+        
+        if is_banished_ip(): return jsonify({"error": "Banished"}), 403
+
+        record_user_ip(current_user.id, get_client_ip())
+        db.session.commit()
 
         return f(current_user, *args, **kwargs)
     return decorated
@@ -136,24 +164,18 @@ def register():
     db.session.add(stat)
 
     token = secrets.token_hex(32)
-    ip_now=(request.remote_addr or "")[:15]
+    ip_now=get_client_ip()
     
     new_session = Session(
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=ip_now,
+        ip_address=ip_now[:15],
     )
     db.session.add(new_session)
     
     user_id = user.id
-    if(not IPs.query.filter_by(user_id=user_id, ip_address=ip_now).first()):
-        new_ip = IPs(
-            id=token,
-            user_id=user_id,
-            ip_address=ip_now,
-        )
-        db.session.add(new_ip)
+    record_user_ip(user_id, ip_now)
     
     db.session.commit()
 
@@ -185,25 +207,27 @@ def login():
     user = User.query.filter_by(username=username).first()
     if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid credentials"}), 401
+    
+    if(user.nightwatch):
+        record_user_ip(user.id, get_client_ip())
+        db.session.commit()
+        return jsonify({
+            "error":"You're under nightwatch"
+        }), 403
 
     token = secrets.token_hex(32)
-    ip_now=(request.remote_addr or "")[:15]
+    ip_now=get_client_ip()
+        
     new_session = Session(
         id=token,
         user_id=user.id,
         expires_at=datetime.utcnow() + timedelta(days=1),
-        ip_address=ip_now,
+        ip_address=ip_now[:15],
     )
     db.session.add(new_session)
     
     user_id = user.id
-    if(not IPs.query.filter_by(user_id=user_id, ip_address=ip_now).first()):
-        new_ip = IPs(
-            id=token,
-            user_id=user_id,
-            ip_address=ip_now,
-        )
-        db.session.add(new_ip)
+    record_user_ip(user_id, ip_now)
     
     db.session.commit()
 
@@ -368,7 +392,7 @@ def get_knights(current_user):
     if not knight_role:
         return jsonify([]), 200
     
-    knights = User.query.filter_by(role_id=knight_role.id).all()
+    knights = User.query.filter_by(role_id=knight_role.id, nightwatch=False).all()
     viewer_role = current_user.role.role_name.lower() if current_user.role.role_name else ""
     revealed_target_id = current_user.stats.gossip_target_id if current_user.stats.gossip_target_id else ""
     
@@ -439,3 +463,90 @@ def use_gossip(current_user):
             "endurance": target.stats.endurance if target.stats else 0,
         }
     }), 200 
+    
+    
+def get_client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        ip = forwarded.split(",")[0].strip()
+    else:
+        ip = request.remote_addr or ""
+    return ip[:45]
+
+
+def record_user_ip(user_id, ip):
+    if not ip:
+        return
+    exists = IPs.query.filter_by(user_id=user_id, ip_address=ip).first()
+    if not exists:
+        try:
+            with db.session.begin_nested():
+                db.session.add(IPs(user_id=user_id, ip_address=ip))
+        except IntegrityError:
+            pass
+        
+
+@api.route("/nightwatch/<int:target_id>", methods=["POST"])
+@login_required
+def ban_with_nightwatch(current_user, target_id):
+    target = User.query.get(target_id)
+    if not target:
+        return jsonify({
+            "error": "Can't find offender"
+        }), 404
+
+    if target.id == current_user.id:
+        return jsonify({
+            "error": "Can't ban yourself"
+        }), 400
+
+    if not target.role or not current_user.role:
+        return jsonify({
+            "error": "Can't detect your highness"
+        }), 400
+
+    if current_user.role.role_name.lower() != "noble":
+        return jsonify({
+            "error": "Only lords can send someone to the Night's Watch"
+        }), 403
+
+    target_role = target.role.role_name.lower()
+
+    if target_role in ("noble", "knight"):
+        if current_user.house_id and target.house_id and current_user.house_id == target.house_id:
+            if target_role == "noble":
+                house = House.query.get(target.house_id)
+                if house and house.lord_id == target.id:
+                    house.lord_id = current_user.id
+            Session.query.filter_by(user_id=target.id).delete()
+            target.nightwatch = True
+            target.house_id = None
+            db.session.commit()
+            return jsonify({
+                "message": f"{target_role.capitalize()} was banned"
+            }), 200
+        else:
+            return jsonify({
+                "error": f"Can't ban {target_role} from another house"
+            }), 403
+    else:
+        Session.query.filter_by(user_id=target.id).delete()
+        target.nightwatch = True
+        db.session.commit()
+        return jsonify({
+            "message": "Commonfolk was banned"
+        }), 200
+        
+        
+def is_banished_ip():    
+    ip_now = get_client_ip()
+    
+    if ip_now:
+        found_user = (
+            User.query
+            .join(IPs, User.id == IPs.user_id)
+            .filter(IPs.ip_address == ip_now, User.nightwatch.is_(True)).first())
+        if(found_user):
+            return True
+            
+    return False

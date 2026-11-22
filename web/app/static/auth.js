@@ -27,6 +27,9 @@ async function handleLogin(e) {
         }, 300);
     } catch (err) {
         showAlert(err.message, true);
+        if (err.message && err.message.toLowerCase().includes("nightwatch")){
+            window.location.href = "/nightwatch";
+        }
     }
 }
 
