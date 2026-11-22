@@ -1,8 +1,5 @@
 import os
-<<<<<<< HEAD
-=======
 import base64
->>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
@@ -159,7 +156,7 @@ def register():
         db.session.add(stat)
 
     token = secrets.token_hex(32)
-    ip_now=get_client_ip()
+    ip_now = get_client_ip()
     
     new_session = Session(
         id=token,
@@ -207,11 +204,11 @@ def login():
         record_user_ip(user.id, get_client_ip())
         db.session.commit()
         return jsonify({
-            "error":"You're under nightwatch"
+            "error": "You're under nightwatch"
         }), 403
 
     token = secrets.token_hex(32)
-    ip_now=get_client_ip()
+    ip_now = get_client_ip()
         
     new_session = Session(
         id=token,
@@ -269,10 +266,7 @@ def get_me(current_user):
         "role": current_user.role.role_name,
         "house_id": current_user.house_id,
         "photo_url": current_user.photo_url,
-<<<<<<< HEAD
-=======
         "is_white_knight": current_user.is_white_knight,
->>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
         "stats": {
             "strength": current_user.stats.strength if current_user.stats else 0,
             "defense": current_user.stats.defense if current_user.stats else 0,
@@ -281,8 +275,7 @@ def get_me(current_user):
         "gossip_key": current_user.stats.key if (is_knight and current_user.stats) else None,
         "next_key": current_user.stats.next_key.isoformat() if (is_knight and current_user.stats and current_user.stats.next_key) else None,
         "gossip_target_id": current_user.stats.gossip_target_id if (is_knight and current_user.stats) else None,
-<<<<<<< HEAD
-        }), 200
+    }), 200
 
 
 @api.route("/me", methods=["PUT", "PATCH"])
@@ -304,12 +297,7 @@ def update_me(current_user):
 
     if "house_id" in data:
         raw_house = data.get("house_id")
-        role_name = current_user.role.role_name.lower() if current_user.role else ""
         if raw_house is None or str(raw_house).strip() == "":
-            if role_name == "noble" and current_user.house_id:
-                old_house = House.query.get(current_user.house_id)
-                if old_house and old_house.lord_id == current_user.id:
-                    old_house.lord_id = None
             current_user.house_id = None
         else:
             try:
@@ -319,13 +307,8 @@ def update_me(current_user):
             house = House.query.get(house_id_int)
             if not house:
                 return jsonify({"error": "Invalid house_id"}), 400
-            if role_name == "noble" and current_user.house_id and current_user.house_id != house.id:
-                old_house = House.query.get(current_user.house_id)
-                if old_house and old_house.lord_id == current_user.id:
-                    old_house.lord_id = None
             current_user.house_id = house.id
-            if role_name == "noble" and not house.lord_id:
-                house.lord_id = current_user.id
+            current_user.is_white_knight = False
 
     photo_file = request.files.get("photo") if is_multipart else None
     if photo_file and photo_file.filename:
@@ -340,11 +323,10 @@ def update_me(current_user):
         if file_size > 5 * 1024 * 1024:
             return jsonify({"error": "Image is too large. Maximum size is 5 MB."}), 400
 
-        upload_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
-        os.makedirs(upload_dir, exist_ok=True)
-        filename = secure_filename(f"user_{current_user.id}_{secrets.token_hex(8)}.{ext}")
-        photo_file.save(os.path.join(upload_dir, filename))
-        current_user.photo_url = url_for("static", filename=f"uploads/avatars/{filename}")
+        encoded_url = save_uploaded_photo(photo_file, current_user.id)
+        if not encoded_url:
+            return jsonify({"error": "Failed to process uploaded image."}), 400
+        current_user.photo_url = encoded_url
     elif str(data.get("remove_photo", "")).lower() in ("1", "true"):
         current_user.photo_url = None
 
@@ -367,13 +349,10 @@ def update_me(current_user):
             "role": current_user.role.role_name,
             "house_id": current_user.house_id,
             "photo_url": current_user.photo_url,
+            "is_white_knight": current_user.is_white_knight,
         }
     }), 200
-    
-=======
-    }), 200
 
->>>>>>> e03796576d5a052858ae7dffc00fb33cad75bc40
 
 @api.route("/me/gossip-key", methods=["POST"])
 @login_required
@@ -484,7 +463,7 @@ def get_knights(current_user):
     
     knights = User.query.filter_by(role_id=knight_role.id, nightwatch=False).all()
     viewer_role = current_user.role.role_name.lower() if current_user.role.role_name else ""
-    revealed_target_id = current_user.stats.gossip_target_id if current_user.stats.gossip_target_id else ""
+    revealed_target_id = current_user.stats.gossip_target_id if (current_user.stats and current_user.stats.gossip_target_id) else ""
     
     result = []
     for k in knights:
