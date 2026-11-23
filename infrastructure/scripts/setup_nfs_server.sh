@@ -1,7 +1,7 @@
 #!/usr/bin/bash
-NFS_DIR="/home/vagrant/pictures"
+NFS_DIR="/home/deploy/pictures"
 NFS_NETWORK="192.168.56.0/24"
-USER="vagrant"
+USER="deploy"
 
 sudo apt install -y nfs-kernel-server
 mkdir -p "${NFS_DIR}" && sudo chown -R ${USER}:${USER} "${NFS_DIR}"

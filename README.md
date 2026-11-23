@@ -35,18 +35,23 @@ Once all VMs are provisioned and running, access the web application through the
 
 ## Connect via SSH:
 
-With secure key:
+Access is secured via SSH key authentication for the dedicated `deploy` user. The default insecure `vagrant` user is locked and removed after provisioning.
 
-Add your own SSH key to .env file before deploying the VM or add it via active SSH session  after the VM is up.:
-
+1. Add your public SSH key to the `.env` file before provisioning:
 ```shell
-sudo echo '[your_new_key]' >> ~/.ssh/authorized_keys # only if logged in as vagrant user
+SSH_PUB_KEY="ssh-ed25519 AAAAC3... your_key_comment"
+# Set path to custom key if not using default  
+# SSH_KEY_PATH="~/.ssh/your_private_key"
 ```
 
-Then connect to the VM using the following command`
-
+2. Connect to any VM using standard `vagrant ssh` (from `infrastructure/`):
 ```shell
-ssh vagrant@ip
+vagrant ssh vm-name
+```
+
+Or connect directly via IP using the `deploy` user:
+```shell
+ssh deploy@ip
 ```
 
 # Vagrant VMs
@@ -55,13 +60,13 @@ ssh vagrant@ip
 
 OS: Ubuntu 22.04 LTS
 
-user: vagrant
+user: `deploy` (SSH key only, sudo privileges)
 
 ### app:
 
-512MB, 1 cpu
+1024MB, 1 cpu
 
-ip: 192.168.56.2, 192.168.56.3
+ip: 192.168.56.2 (app1), 192.168.56.3 (app2)
 
 ### LB:
 
@@ -71,7 +76,7 @@ ip: 192.168.56.10
 
 ### DB:
 
-2048MB, 2 cpu (or 1 cpu on Windows if Hyper-V/WHPX is enabled)
+1024MB, 1 cpu
 
 ip: 192.168.56.4
 
