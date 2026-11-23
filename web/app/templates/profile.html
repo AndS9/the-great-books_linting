@@ -83,7 +83,7 @@
         <form id="edit-profile-form" class="auth-form" onsubmit="saveProfileChanges(event)">
             <label>
                 Username
-                <input type="text" id="edit-username" maxlength="50" required>
+                <input type="text" id="edit-username" minlength="5" maxlength="20" required>
             </label>
             <label>
                 Sworn House
@@ -124,7 +124,7 @@
             </label>
             <label>
                 New Password (optional)
-                <input type="password" id="edit-new-password" autocomplete="new-password">
+                <input type="password" id="edit-new-password" minlength="8" maxlength="20" autocomplete="new-password">
             </label>
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" onclick="closeEditProfileModal()">Cancel</button>

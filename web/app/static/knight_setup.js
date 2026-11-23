@@ -21,6 +21,10 @@ async function submitKnightSetup(e) {
     formData.append("photo", selectedPhotoFile);
 
     try {
+        if (strength < 0 || strength > 20 || defense < 0 || defense > 20 || endurance < 0 || endurance > 20) {
+            showAlert("Strength, Defense, and Endurance must be between 0 and 20.", true);
+            return;
+        }
         const res = await fetch(API_BASE + "/knights/setup", {
             method: "POST",
             credentials: "same-origin",

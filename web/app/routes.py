@@ -147,6 +147,9 @@ def register():
     if len(username) < 5 or len(username) > 20:
         return jsonify({"error": "Username must be between 5 and 20 characters"}), 400
 
+    if len(password) < 8 or len(password) > 20:
+        return jsonify({"error": "Password must be between 8 and 20 characters"}), 400
+
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already taken"}), 409
 
@@ -291,8 +294,8 @@ def update_me(current_user):
         new_username = str(data["username"]).strip()
         if not new_username:
             return jsonify({"error": "Username cannot be empty"}), 400
-        if len(new_username) > 50:
-            return jsonify({"error": "Username must be 50 characters or fewer"}), 400
+        if len(new_username) < 5 or len(new_username) > 20:
+            return jsonify({"error": "Username must be between 5 and 20 characters long"}), 400
         existing = User.query.filter(User.username == new_username, User.id != current_user.id).first()
         if existing:
             return jsonify({"error": "Username already taken"}), 409
@@ -338,8 +341,8 @@ def update_me(current_user):
         new_password = str(data["new_password"])
         if not current_password or not check_password_hash(current_user.password, current_password):
             return jsonify({"error": "Current password is incorrect"}), 400
-        if len(new_password) < 4:
-            return jsonify({"error": "New password is too short"}), 400
+        if len(new_password) < 8 or len(new_password) > 20:
+            return jsonify({"error": "New password must be between 8 and 20 characters long"}), 400
         current_user.password = generate_password_hash(new_password)
 
     db.session.commit()

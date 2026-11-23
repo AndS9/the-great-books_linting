@@ -279,6 +279,14 @@ async function saveProfileChanges(e) {
     }
 
     try {
+        if (username.length < 5 || username.length > 20) {
+            showAlert("Username must be between 5 and 20 characters long.", true);
+            return;
+        }
+        if (new_password && (new_password.length < 8 || new_password.length > 20)) {
+            showAlert("New password must be between 8 and 20 characters long.", true);
+            return;
+        }
         const res = await apiFetch("/me", {
             method: "PATCH",
             body: formData

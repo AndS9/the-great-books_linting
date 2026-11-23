@@ -79,6 +79,14 @@ async function handleEditHouse(e) {
     const motto = document.getElementById("edit-house-motto").value.trim();
 
     try {
+        if (name.length < 5 || name.length > 20) {
+            showAlert(`House name must be between 5 and 20 characters long.`, true);
+            return;
+        }
+        if (motto.length < 5 || motto.length > 30) {
+            showAlert(`House motto must be between 5 and 30 characters long.`, true);
+            return;
+        }
         const res = await apiFetch("/houses/" + houseId, {
             method: "PUT",
             body: JSON.stringify({ name, motto })
