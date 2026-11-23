@@ -37,7 +37,7 @@ function showAlert(message, isError = false) {
     if (!box) return;
     box.textContent = message;
     box.className = isError ? "alert error" : "alert";
-    setTimeout(() => box.classList.add("hidden"), 4500);
+    setTimeout(() => box.classList.add("hidden"), 5000);
 }
 
 function getHouseBannerClass(houseName) {

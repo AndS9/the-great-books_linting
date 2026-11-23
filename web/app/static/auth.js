@@ -48,6 +48,14 @@ async function handleRegister(e) {
     const role_id = Number(document.getElementById("reg-role").value);
 
     try {
+        if (username.length < 5 || username.length > 20) {
+            showAlert(`Username must be between 5 and 20 characters long.`, true);
+            return;
+        }
+        if (password.length < 8 || password.length > 20) {
+            showAlert(`Password must be between 8 and 20 characters long.`, true);
+            return;
+        }
         const res = await apiFetch("/auth/register", {
             method: "POST",
             body: JSON.stringify({ username, password, role_id })
