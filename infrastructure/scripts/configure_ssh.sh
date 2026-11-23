@@ -19,7 +19,12 @@ AllowTcpForwarding no
 EOF
 
 if [ -n "${SSH_PUB_KEY:-}" ]; then
-  SSH_DIR="/home/vagrant/.ssh"
+  id -u deploy &>/dev/null || useradd -m -s /bin/bash deploy
+  usermod -aG sudo deploy
+  echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-deploy-user
+  chmod 440 /etc/sudoers.d/99-deploy-user
+
+  SSH_DIR="/home/deploy/.ssh"
   AUTH_KEYS="$SSH_DIR/authorized_keys"
 
   mkdir -p "$SSH_DIR"
@@ -29,8 +34,11 @@ if [ -n "${SSH_PUB_KEY:-}" ]; then
 
   chmod 700 "$SSH_DIR"
   chmod 600 "$AUTH_KEYS"
-  chown -R vagrant:vagrant "$SSH_DIR"
-  echo "SSH key from .env applied."
+  chown -R deploy:deploy "$SSH_DIR"
+  echo "SSH key from .env applied to user 'deploy'."
 else
   echo "WARNING: SSH_PUB_KEY is not set in .env"
 fi
+
+echo "Перезапуск SSH застосування налаштувань..."
+systemctl reload ssh || systemctl restart ssh

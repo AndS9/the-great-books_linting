@@ -45,6 +45,7 @@ echo "Налаштування .env..."
 mv /tmp/.env "${APP_DIR}/.env"
 echo "" >> "${APP_DIR}/.env"
 echo "DATABASE_URI=postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> "${APP_DIR}/.env"
+chown -R www-data:www-data "${APP_DIR}"
 chmod 600 "${APP_DIR}/.env"
 
 echo "Запуск міграцій..."
@@ -78,7 +79,8 @@ Description=Flask Backend
 After=network.target
 
 [Service]
-User=root
+User=www-data
+Group=www-data
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
 ExecStart=${APP_DIR}/venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 run:app

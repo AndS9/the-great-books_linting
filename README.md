@@ -35,31 +35,25 @@ Once all VMs are provisioned and running, access the web application through the
 
 ## Connect via SSH:
 
-1. Standard Vagrant SSH (simplest way):
+Access is secured via SSH key authentication.
 
+- **Local Development**: You can use the standard Vagrant workflow:
+  ```shell
+  vagrant ssh <vm_name>   # e.g., vagrant ssh app1, vagrant ssh DB
+  ```
+- **Production Environment (Important)**:
+  On Production, SSH access **MUST be restricted exclusively to the dedicated `deploy` user** using SSH key pairs (password login and root login are disabled). The default `vagrant` user must be locked and removed (enable `scripts/cleanup_vagrant.sh` in the `Vagrantfile` or your cloud-init script).
+
+### Connecting as `deploy` user:
+
+1. Add your public SSH key to the `.env` file before provisioning:
 ```shell
-vagrant ssh <vm_name>
+SSH_PUB_KEY="ssh-ed25519 AAAAC3... your_key_comment"
 ```
 
-Example:
-
+2. Connect directly via IP using the `deploy` user and your private key:
 ```shell
-vagrant ssh app1
-vagrant ssh DB
-```
-
-2. With secure key (if you want to use your own SSH client):
-
-Add your own SSH key to .env file before deploying the VM or add it via `vagrant ssh` command after the VM is up.:
-
-```shell
-sudo echo '[your_new_key]' >> ~/.ssh/authorized_keys # only if logged in as vagrant user
-```
-
-Then connect to the VM using the following command`
-
-```shell
-ssh vagrant@ip
+ssh deploy@<vm_ip>   # e.g., ssh deploy@192.168.56.2
 ```
 
 # Vagrant VMs
@@ -68,13 +62,13 @@ ssh vagrant@ip
 
 OS: Ubuntu 22.04 LTS
 
-user: vagrant
+user: `deploy` (production) / `vagrant` (local development fallback)
 
 ### app:
 
-512MB, 1 cpu
+1024MB, 1 cpu
 
-ip: 192.168.56.2, 192.168.56.3
+ip: 192.168.56.2 (app1), 192.168.56.3 (app2)
 
 ### LB:
 
@@ -84,7 +78,7 @@ ip: 192.168.56.10
 
 ### DB:
 
-2048MB, 2 cpu (or 1 cpu on Windows if Hyper-V/WHPX is enabled)
+1024MB, 1 cpu
 
 ip: 192.168.56.4
 

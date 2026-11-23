@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 NFS_SERVER="192.168.56.10"
 LOCAL_DIR="/opt/web/app/static/pictures"
-REMOTE_DIR="/home/vagrant/pictures"
-USER="vagrant"
+REMOTE_DIR="/home/deploy/pictures"
+USER="deploy"
 
 sudo apt install -y nfs-common 
 sudo mkdir -p "${LOCAL_DIR}" && sudo chown -R ${USER}:${USER} "${LOCAL_DIR}"
