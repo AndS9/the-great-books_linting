@@ -1,21 +1,4 @@
-const REALM_ROSTER_SEED = [
-    { id: 901, username: "Ser Jaime Lannister", role: "knight", house_name: "Lannister", is_mock: true, stats: { strength: 18, defense: 16, endurance: 15 } },
-    { id: 902, username: "Ser Brienne of Tarth", role: "knight", house_name: "Stark", is_mock: true, stats: { strength: 17, defense: 17, endurance: 16 } },
-    { id: 903, username: "Ser Jorah Mormont", role: "knight", house_name: "Targaryen", is_mock: true, stats: { strength: 16, defense: 15, endurance: 16 } },
-    { id: 904, username: "Ser Barristan Selmy", role: "knight", house_name: "Baratheon", is_mock: true, stats: { strength: 17, defense: 18, endurance: 14 } },
-    { id: 905, username: "Eddard Stark", role: "noble", house_name: "Stark", is_mock: true, stats: null },
-    { id: 906, username: "Tywin Lannister", role: "noble", house_name: "Lannister", is_mock: true, stats: null },
-    { id: 907, username: "Daenerys Targaryen", role: "noble", house_name: "Targaryen", is_mock: true, stats: null },
-    { id: 908, username: "Robert Baratheon", role: "noble", house_name: "Baratheon", is_mock: true, stats: null }
-];
-
 let allRealmMembers = [];
-
-function getMockGossipTargetId() {
-    if (!currentUser || !currentUser.gossip_key) return null;
-    const saved = localStorage.getItem("mock_gossip_" + currentUser.gossip_key);
-    return saved ? Number(saved) : null;
-}
 
 async function loadRealmRoster() {
     let dbMembers = [];
@@ -62,22 +45,7 @@ async function loadRealmRoster() {
         }
     });
 
-    const seedWithIds = REALM_ROSTER_SEED.map(item => {
-        const matchedHouse = housesList.find(h => h.name.toLowerCase() === item.house_name.toLowerCase());
-        return {
-            ...item,
-            house_id: matchedHouse ? matchedHouse.id : null
-        };
-    });
-
-    const combined = [...dbMembers];
-    seedWithIds.forEach(seed => {
-        if (!combined.some(c => c.username.toLowerCase() === seed.username.toLowerCase())) {
-            combined.push(seed);
-        }
-    });
-
-    allRealmMembers = combined;
+    allRealmMembers = dbMembers;
     if (document.getElementById("grid-knights")) renderBook("knight");
     if (document.getElementById("grid-lords")) renderBook("noble");
 }
@@ -128,8 +96,7 @@ function renderCharacterCard(person, bookRole) {
         ? '<img src="' + person.photo_url + '" alt="" class="crest-monogram" style="object-fit: cover; padding: 0;" onerror="this.outerHTML=\'<div class=\\\'crest-monogram\\\'>' + initials + '</div>\'">'
         : '<div class="crest-monogram">' + initials + '</div>';
 
-    const mockTargetId = getMockGossipTargetId();
-    const activeTargetId = (currentUser && currentUser.gossip_target_id) || mockTargetId;
+    const activeTargetId = currentUser ? currentUser.gossip_target_id : null;
     const revealedByGossip = activeTargetId === person.id;
 
     const isSelf = currentUser && currentUser.id === person.id;
@@ -178,8 +145,7 @@ function renderCharacterCard(person, bookRole) {
         currentUser.house_id &&
         currentUser.house_id === person.house_id &&
         person.id !== currentUser.id &&
-        (targetRole === "knight" || targetRole === "noble") &&
-        !person.is_mock
+        (targetRole === "knight" || targetRole === "noble")
     );
 
     let banBtnHtml = "";
@@ -215,24 +181,6 @@ async function submitGossip(targetId) {
 
     if (!key) {
         return showAlert("Please paste your Gossip key first.", true);
-    }
-
-    const targetPerson = allRealmMembers.find(m => m.id === targetId);
-
-    if (targetPerson && targetPerson.is_mock) {
-        if (!currentUser || !currentUser.gossip_key) {
-            return showAlert("Generate a gossip key in your Profile first.", true);
-        }
-        if (key !== currentUser.gossip_key) {
-            return showAlert("Invalid gossip key.", true);
-        }
-        if (getMockGossipTargetId() !== null || currentUser.gossip_target_id !== null) {
-            return showAlert("You have already used your gossip key for today.", true);
-        }
-        localStorage.setItem("mock_gossip_" + currentUser.gossip_key, String(targetId));
-        showAlert("Combat stats revealed for " + targetPerson.username + ".");
-        await loadRealmRoster();
-        return;
     }
 
     try {
