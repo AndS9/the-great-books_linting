@@ -22,7 +22,7 @@ async function loadProfile() {
         const profMonogram = document.getElementById("prof-monogram");
         if (profMonogram) {
             if (me.photo_url) {
-                profMonogram.innerHTML = `<img src="${me.photo_url}" alt="${me.username}" class="monogram-avatar">`;
+                profMonogram.innerHTML = `<img src="/static/pictures/${me.photo_url}" alt="${me.username}" class="monogram-avatar">`;
             } else {
                 profMonogram.textContent = getInitials(me.username);
             }
