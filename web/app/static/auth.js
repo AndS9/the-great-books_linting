@@ -21,6 +21,9 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         await checkAuth();
+        if (res.redirect_url) {
+            window.location.href = res.redirect_url;
+        }
         showAlert("Welcome back to the realm, " + res.user.username + "!");
         setTimeout(() => {
             const role = res.user.role.toLowerCase();

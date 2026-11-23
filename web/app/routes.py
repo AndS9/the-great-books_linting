@@ -211,11 +211,6 @@ def login():
     user = User.query.filter_by(username=username).first()
     if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid credentials"}), 401
-    
-    if user.nightwatch:
-        return jsonify({
-            "error": "You're under nightwatch"
-        }), 403
 
     token = secrets.token_hex(32)
     ip_now = get_client_ip()
@@ -229,14 +224,19 @@ def login():
     db.session.add(new_session)
     db.session.commit()
 
-    response = make_response(jsonify({
+    payload = {
         "user": {
             "id": user.id,
             "username": user.username,
             "role": user.role.role_name,
             "house_id": user.house_id,
         }
-    }), 200)
+    }
+
+    if user.nightwatch:
+        payload["redirect_url"] = url_for("web_ui.nightwatch")
+
+    response = make_response(jsonify(payload), 200)
     response.set_cookie(
         "token", token,
         httponly=True,
@@ -244,6 +244,7 @@ def login():
         samesite="Lax",
         max_age=86400
     )
+
     return response
 
 
