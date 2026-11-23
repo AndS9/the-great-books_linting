@@ -93,7 +93,7 @@ function renderCharacterCard(person, bookRole) {
     const initials = getInitials(person.username);
 
     const avatarHtml = person.photo_url
-        ? '<img src="' + person.photo_url + '" alt="" class="crest-monogram" style="object-fit: cover; padding: 0;" onerror="this.outerHTML=\'<div class=\\\'crest-monogram\\\'>' + initials + '</div>\'">'
+        ? '<img src="/static/pictures/' + person.photo_url + '" alt="" class="crest-monogram" style="object-fit: cover; padding: 0;" onerror="this.outerHTML=\'<div class=\\\'crest-monogram\\\'>' + initials + '</div>\'">'
         : '<div class="crest-monogram">' + initials + '</div>';
 
     const activeTargetId = currentUser ? currentUser.gossip_target_id : null;

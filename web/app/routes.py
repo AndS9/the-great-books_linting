@@ -1,6 +1,7 @@
 import os
 import base64
 import secrets
+import random
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, make_response, current_app, session
@@ -10,6 +11,7 @@ from .extensions import db
 from .models import User, Role, House, Stat, Session
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
+photo_path = "./app/static/pictures/"  #path for uploaded photos
 
 @web_ui.before_request
 def require_auth():
@@ -330,7 +332,7 @@ def update_me(current_user):
         if file_size > 5 * 1024 * 1024:
             return jsonify({"error": "Image is too large. Maximum size is 5 MB."}), 400
 
-        encoded_url = save_uploaded_photo(photo_file, current_user.id)
+        encoded_url = save_uploaded_photo(photo_file, current_user.id, current_user.username)
         if not encoded_url:
             return jsonify({"error": "Failed to process uploaded image."}), 400
         current_user.photo_url = encoded_url
@@ -656,18 +658,18 @@ def compare_ip():
 
     return False
 
-def save_uploaded_photo(photo, user_id):
+def save_uploaded_photo(photo, user_id, user_name):
     if not photo or not photo.filename:
         return None
     ext = photo.filename.rsplit(".", 1)[-1].lower()
     if ext not in ("png", "jpg", "jpeg", "webp"):
         return None
-    mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
-    raw_bytes = photo.read()
-    if not raw_bytes:
-        return None
-    encoded = base64.b64encode(raw_bytes).decode("ascii")
-    return f"data:{mime};base64,{encoded}"
+
+    photo_name = f"{user_name}-{random.randint(0, 100)}.jpg"
+    with open(f"{photo_path}/{photo_name}", "wb") as f:
+        f.write(photo.read())
+
+    return photo_name
 
 
 @api.route("/lords/setup", methods=["POST"])
@@ -686,7 +688,7 @@ def setup_lord(current_user):
     if not house:
         return jsonify({"error": "House not found"}), 404
 
-    photo_url = save_uploaded_photo(photo, current_user.id)
+    photo_url = save_uploaded_photo(photo, current_user.id, current_user.username)
     if not photo_url:
         return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
 
@@ -718,7 +720,7 @@ def setup_knight(current_user):
         if not (0 <= stat_val <= 20):
             return jsonify({"error": f"{stat_name} must be between 0 and 20"}), 400
 
-    photo_url = save_uploaded_photo(photo, current_user.id)
+    photo_url = save_uploaded_photo(photo, current_user.id, current_user.username)
     if not photo_url:
         return jsonify({"error": "Valid photo (png, jpg, webp) is required"}), 400
 
