@@ -35,22 +35,9 @@ Once all VMs are provisioned and running, access the web application through the
 
 ## Connect via SSH:
 
-1. Standard Vagrant SSH (simplest way):
+With secure key:
 
-```shell
-vagrant ssh <vm_name>
-```
-
-Example:
-
-```shell
-vagrant ssh app1
-vagrant ssh DB
-```
-
-2. With secure key (if you want to use your own SSH client):
-
-Add your own SSH key to .env file before deploying the VM or add it via `vagrant ssh` command after the VM is up.:
+Add your own SSH key to .env file before deploying the VM or add it via active SSH session  after the VM is up.:
 
 ```shell
 sudo echo '[your_new_key]' >> ~/.ssh/authorized_keys # only if logged in as vagrant user
