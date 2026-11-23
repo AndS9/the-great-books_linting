@@ -8,14 +8,7 @@ if [ ! -f /tmp/.env ]; then
 fi
 
 set -a
-if [ -f /tmp/.env ]; then
-    set -a
-    source <(tr -d '\r' < /tmp/.env)
-    set +a
-else
-    echo "Помилка: /tmp/.env не знайдено!" >&2
-    exit 1
-fi
+source <(tr -d '\r' < /tmp/.env)
 set +a
 rm -f /tmp/.env
 
