@@ -44,9 +44,6 @@ class House(db.Model):
         CheckConstraint("length(name) >= 5 AND length(name) <= 20", name="check_name"),
         CheckConstraint("length(motto) >= 5 AND length(motto) <= 30", name="check_motto"),
     )
-    lord_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_house_lord_id"), nullable=True)
-
-
 
 class Stat(db.Model):
     __tablename__ = "stats"
