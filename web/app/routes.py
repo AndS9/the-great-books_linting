@@ -74,6 +74,12 @@ def lord_setup():
 def knight_setup():
     return render_template("knight_setup.html")
 
+@web_ui.app_errorhandler(404)
+def handle_404(e):
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Resource not found"}), 404
+    return render_template("404.html"), 404
+
 api = Blueprint("api", __name__, url_prefix="/api")
 
 def login_required(f):
