@@ -1,6 +1,6 @@
 from datetime import datetime
 from .extensions import db
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, Index, text
 
 
 class Role(db.Model):
@@ -22,14 +22,21 @@ class User(db.Model):
     house_id = db.Column(db.Integer, db.ForeignKey("houses.id"), nullable=True)
 
     role = db.relationship("Role", backref="users")
-    stats = db.relationship("Stat", 
-                            backref="user", uselist=False, 
+    stats = db.relationship("Stat",
+                            backref="user", uselist=False,
                             cascade="all, delete-orphan",
                             foreign_keys="Stat.user_id")
     nightwatch = db.Column(db.Boolean, nullable=True)
 
     __table_args__ = (
         CheckConstraint("length(username) >= 5 AND length(username) <= 20", name="check_username"),
+        Index("ix_users_role_id", "role_id"),
+        Index("ix_users_house_id", "house_id"),
+        Index(
+            "ix_users_nightwatch_true",
+            "id",
+            postgresql_where=text("nightwatch = true"),
+        ),
     )
 
 
@@ -71,3 +78,7 @@ class Session(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     ip_address = db.Column(db.String(45))
+
+    __table_args__ = (
+        db.Index("ix_sessions_ip_user", "ip_address", "user_id"),
+    )
