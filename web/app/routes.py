@@ -9,6 +9,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from .extensions import db
 from .models import User, Role, House, Stat, Session
+import hmac
+import hashlib
+
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 photo_path = "./app/static/pictures/"  #path for uploaded photos
@@ -209,6 +212,7 @@ def login():
     data = request.get_json() or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    remember_me = data.get("remember_me", False)
 
     user = User.query.filter_by(username=username).first()
     if not user or not check_password_hash(user.password, password):
@@ -220,8 +224,9 @@ def login():
     new_session = Session(
         id=token,
         user_id=user.id,
-        expires_at=datetime.utcnow() + timedelta(days=1),
+        expires_at=datetime.utcnow() + timedelta(days=28 if remember_me else 1),
         ip_address=ip_now,
+        remember_me=remember_me,
     )
     db.session.add(new_session)
     db.session.commit()
@@ -244,7 +249,7 @@ def login():
         httponly=True,
         path="/",
         samesite="Lax",
-        max_age=86400
+        max_age=2592000 if remember_me else 86400
     )
 
     return response
@@ -573,14 +578,20 @@ def use_gossip(current_user):
         }
     }), 200 
     
-    
+def hash_ip(ip: str) -> str:
+    if not ip:
+        return ""
+
+    secret = current_app.config.get("IP_SECRET") or current_app.config.get("SECRET_KEY")
+    return hmac.new(secret.encode("utf-8"), ip.encode("utf-8"), hashlib.sha256).hexdigest()
+
 def get_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
         ip = forwarded.split(",")[0].strip()
     else:
         ip = request.remote_addr or ""
-    return ip[:45]
+    return hash_ip(ip)
 
 
 @api.route("/nightwatch/<int:target_id>", methods=["POST"])
@@ -651,6 +662,8 @@ def compare_ip():
         return False
 
     session_obj = Session.query.filter_by(id=token).first()
+    if session_obj.remember_me:
+        return False
     if session_obj and session_obj.ip_address and session_obj.ip_address != ip_now:
         session_obj.expires_at = datetime.utcnow()
         db.session.commit()
