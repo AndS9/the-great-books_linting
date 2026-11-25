@@ -77,7 +77,7 @@ class Session(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(45))
+    ip_address = db.Column(db.String(128))
     remember_me = db.Column(db.Boolean, default=False)
 
     __table_args__ = (
