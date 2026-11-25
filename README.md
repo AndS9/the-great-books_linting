@@ -155,7 +155,8 @@ flask db upgrade # to apply the changes to the database
 - expires_at - timestamp, not null
 - created_at - timestamp
 - ip_address - varchar(15)
----
+- remember_me - boolean
+
 # Web Interface (UI Pages)
 
 The application provides a server-rendered web interface with authentication guards:
@@ -194,7 +195,7 @@ The application provides a server-rendered web interface with authentication gua
   - Body (JSON): `username` (string, required), `password` (string, required), `role_id` (int, required), `house_id` (int, optional)
   - Success (201): sets `token` cookie and returns user info
 - `POST /api/auth/login` - authenticate user and start a session
-  - Body (JSON): `username` (string, required), `password` (string, required)
+  - Body (JSON): `username` (string, required), `password` (string, required), `remember_me` (boolean, optional)
   - Success (200): sets `token` cookie and returns user info
 - `POST /api/auth/logout` - invalidate session and clear cookie
   - Header/Cookie: `token=<token>`
