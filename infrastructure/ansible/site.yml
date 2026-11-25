@@ -1,0 +1,12 @@
+---
+- name: Install common packages on all hosts
+  hosts: all
+  become: true
+  roles:
+  - common
+
+- name: Configure Nginx load balancer
+  hosts: load_balancers
+  become: true
+  roles:
+  - nginx
