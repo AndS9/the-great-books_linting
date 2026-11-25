@@ -9,6 +9,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from .extensions import db
 from .models import User, Role, House, Stat, Session
+import hmac
+import hashlib
+
 
 web_ui = Blueprint("web_ui", __name__, url_prefix="/")
 photo_path = "./app/static/pictures/"  #path for uploaded photos
@@ -573,14 +576,20 @@ def use_gossip(current_user):
         }
     }), 200 
     
-    
+def hash_ip(ip: str) -> str:
+    if not ip:
+        return ""
+
+    secret = current_app.config.get("IP_SECRET") or current_app.config.get("SECRET_KEY")
+    return hmac.new(secret.encode("utf-8"), ip.encode("utf-8"), hashlib.sha256).hexdigest()
+
 def get_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
         ip = forwarded.split(",")[0].strip()
     else:
         ip = request.remote_addr or ""
-    return ip[:45]
+    return hash_ip(ip)
 
 
 @api.route("/nightwatch/<int:target_id>", methods=["POST"])
