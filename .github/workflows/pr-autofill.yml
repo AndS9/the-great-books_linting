@@ -1,0 +1,47 @@
+name: Auto-fill Jira Task in PR
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  autofill-task-id:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract SC task ID and update PR body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const match = branch.match(/^(SC-\d+)/i);
+
+            if (!match) {
+              console.log(`No Jira ID found in branch name: "${branch}". Skipping.`);
+              return;
+            }
+
+            const taskId = match[1].toUpperCase();
+            const link = `https://drobko-bohdan.atlassian.net/browse/${taskId}`;
+            let body = context.payload.pull_request.body || '';
+
+            body = body
+              .replace(
+                /\*\*Task ID:\*\* SC-___/g,
+                `**Task ID:** ${taskId}`
+              )
+              .replace(
+                /\[SC-___\]\(https:\/\/(drobko-bohdan\.atlassian\.net\/browse|app\.shortcut\.com\/devops-team02\/story)\/SC-___\)/g,
+                `[${taskId}](${link})`
+              );
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              body: body,
+            });
+
+            console.log(`PR #${context.payload.pull_request.number} updated with ${taskId}`);
