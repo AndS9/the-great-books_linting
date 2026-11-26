@@ -23,7 +23,7 @@ cp /tmp/nginx.conf.ctmpl /etc/nginx/templates/nginx.conf.ctmpl
 
 cat > /etc/consul-template.d/consul-template.hcl <<EOF
 consul {
-  address = "192.168.56.5:8500"
+  address = "127.0.0.1:8500"
 }
 
 template {

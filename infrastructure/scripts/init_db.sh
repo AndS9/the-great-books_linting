@@ -52,30 +52,3 @@ sudo netfilter-persistent save
 echo "Перезапуск PostgreSQL..."
 systemctl restart postgresql
 
-echo "Registering PostgreSQL in Consul..."
-CONSUL_ADDR="http://192.168.56.5:8500"
-SERVICE_IP="$(hostname -I | tr ' ' '\n' | grep '^192\.168\.56\.' | head -n1)"
-SERVICE_IP="${SERVICE_IP:-192.168.56.4}"
-
-for i in {1..5}; do
-  if curl -sf -X PUT "${CONSUL_ADDR}/v1/agent/service/register" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"Name\": \"postgres\",
-      \"ID\": \"postgres-db\",
-      \"Tags\": [\"database\", \"postgresql\"],
-      \"Address\": \"${SERVICE_IP}\",
-      \"Port\": 5432,
-      \"Check\": {
-        \"TCP\": \"${SERVICE_IP}:5432\",
-        \"Interval\": \"10s\",
-        \"Timeout\": \"2s\",
-        \"DeregisterCriticalServiceAfter\": \"1m\"
-      }
-    }"; then
-    echo "PostgreSQL успішно зареєстровано в Consul!"
-    break
-  fi
-  echo "Очікування доступності Consul ($i/5)..."
-  sleep 2
-done
