@@ -19,24 +19,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", path: "scripts/configure_ssh.sh",env: { "SSH_PUB_KEY" => ENV["SSH_PUB_KEY"] }
 
-  config.vm.define "DB" do |app|
-    app.vm.hostname = "db"
-    app.vm.network "private_network", ip: "192.168.56.4"
-
-    app.vm.provider "virtualbox" do |vb|
-      vb.name = "Vagrant-DB"
-      vb.cpus = 1
-      vb.memory = 1024
-      vb.linked_clone = true
-    end
-
-    app.vm.provision "file",
-      source: "../.env",
-      destination: "/tmp/.env"
-
-    app.vm.provision "shell", path: "scripts/init_db.sh"
-  end
-
   config.vm.define "Consul" do |app|
     app.vm.hostname = "consul"
     app.vm.network "private_network", ip: "192.168.56.5"
@@ -55,6 +37,70 @@ Vagrant.configure("2") do |config|
     app.vm.provision "shell", path: "consul/install.sh"
   end
 
+  config.vm.define "DB" do |app|
+    app.vm.hostname = "db"
+    app.vm.network "private_network", ip: "192.168.56.4"
+
+    app.vm.provider "virtualbox" do |vb|
+      vb.name = "Vagrant-DB"
+      vb.cpus = 1
+      vb.memory = 1024
+      vb.linked_clone = true
+    end
+
+    app.vm.provision "file",
+      source: "../.env",
+      destination: "/tmp/.env"
+
+    app.vm.provision "shell", path: "scripts/init_db.sh"
+  end
+
+  config.vm.define "app1" do |app|
+    app.vm.hostname = "app1"
+    app.vm.network "private_network", ip: "192.168.56.2"
+
+    app.vm.provider "virtualbox" do |vb|
+      vb.name = "Vagrant-app1"
+      vb.cpus = 1
+      vb.memory = 1024
+      vb.linked_clone = true
+    end
+
+    app.vm.provision "file",
+      source: "../web/",
+      destination: "/tmp/web"
+
+    app.vm.provision "file",
+      source: "../.env",
+      destination: "/tmp/.env"
+
+    app.vm.provision "shell", path: "scripts/init_web.sh"
+    app.vm.provision "shell", path: "scripts/setup_nfs_client.sh"
+  end
+
+  config.vm.define "app2" do |app|
+    app.vm.hostname = "app2"
+    app.vm.network "private_network", ip: "192.168.56.3"
+
+    app.vm.provider "virtualbox" do |vb|
+      vb.name = "Vagrant-app2"
+      vb.cpus = 1
+      vb.memory = 1024
+      vb.linked_clone = true
+    end
+
+    app.vm.provision "file",
+      source: "../web/",
+      destination: "/tmp/web"
+
+    app.vm.provision "file",
+      source: "../.env",
+      destination: "/tmp/.env"
+
+    app.vm.provision "shell", path: "scripts/init_web.sh"
+    app.vm.provision "shell", path: "scripts/setup_nfs_client.sh"
+  end
+
   config.vm.define "LB" do |app|
     app.vm.hostname = "lb"
     app.vm.network "private_network", ip: "192.168.56.10"
@@ -71,54 +117,12 @@ Vagrant.configure("2") do |config|
       vb.linked_clone = true
     end
 
+    app.vm.provision "file",
+      source: "consul/nginx.conf.ctmpl",
+      destination: "/tmp/nginx.conf.ctmpl"
+
     app.vm.provision "shell", path: "scripts/init_nginx_lb.sh"
     app.vm.provision "shell", path: "scripts/setup_nfs_server.sh"
-  end
-
-  config.vm.define "app1" do |app|
-    app.vm.hostname = "app1"
-    app.vm.network "private_network", ip: "192.168.56.2"
-
-    app.vm.provider "virtualbox" do |vb|
-      vb.name = "Vagrant-app1"
-      vb.cpus = 1
-      vb.memory = 1024
-      vb.linked_clone = true
-    end
-
-    # app.vm.provision "file",
-    #   source: "../web/",
-    #   destination: "/tmp/web"
-
-    # app.vm.provision "file",
-    #   source: "../.env",
-    #   destination: "/tmp/.env"
-
-    # app.vm.provision "shell", path: "scripts/init_web.sh"
-    # app.vm.provision "shell", path: "scripts/setup_nfs_client.sh"
-  end
-
-  config.vm.define "app2" do |app|
-    app.vm.hostname = "app2"
-    app.vm.network "private_network", ip: "192.168.56.3"
-
-    app.vm.provider "virtualbox" do |vb|
-      vb.name = "Vagrant-app2"
-      vb.cpus = 1
-      vb.memory = 1024
-      vb.linked_clone = true
-    end
-
-    # app.vm.provision "file",
-    #   source: "../web/",
-    #   destination: "/tmp/web"
-
-    # app.vm.provision "file",
-    #   source: "../.env",
-    #   destination: "/tmp/.env"
-
-    # app.vm.provision "shell", path: "scripts/init_web.sh"
-    # app.vm.provision "shell", path: "scripts/setup_nfs_client.sh"
   end
 
   config.vm.define "CI-CD" do |app|

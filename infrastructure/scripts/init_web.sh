@@ -117,5 +117,30 @@ systemctl restart nginx
 
 echo "Налаштування фаєрволу для додатку..."
 
+sudo iptables -A INPUT -p tcp -s 192.168.56.5 --dport 80 -j ACCEPT
 sudo iptables -A INPUT -p tcp -s 192.168.56.10 --dport 80 -j ACCEPT
 sudo netfilter-persistent save
+
+CONSUL_ADDR="http://192.168.56.5:8500"
+SERVICE_NAME="the-great-books-web"
+SERVICE_ID="${SERVICE_NAME}-$(hostname)"
+SERVICE_IP="$(hostname -I | tr ' ' '\n' | grep '^192\.168\.56\.' | head -n1)"
+SERVICE_PORT=80
+HEALTH_PATH="/api/health"
+
+curl -sf -X PUT "${CONSUL_ADDR}/v1/agent/service/register" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"Name\": \"${SERVICE_NAME}\",
+    \"ID\": \"${SERVICE_ID}\",
+    \"Tags\": [\"$(hostname)\", \"vagrant\"],
+    \"Address\": \"${SERVICE_IP}\",
+    \"Port\": ${SERVICE_PORT},
+    \"Check\": {
+      \"HTTP\": \"http://${SERVICE_IP}:${SERVICE_PORT}${HEALTH_PATH}\",
+      \"Method\": \"GET\",
+      \"Interval\": \"10s\",
+      \"Timeout\": \"2s\",
+      \"DeregisterCriticalServiceAfter\": \"1m\"
+    }
+  }"
