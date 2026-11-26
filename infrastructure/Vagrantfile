@@ -11,6 +11,26 @@ File.readlines("../.env").each do |line|
   ENV[key] = value.gsub(/\A['"]|['"]\z/, "") if key && value
 end
 
+def provision_ansible_access(vm)
+  vm.vm.provision "file",
+    source: "./ssh-keys/ansible_key.pub",
+    destination: "/tmp/ansible_key.pub"
+
+  vm.vm.provision "shell", inline: <<-SHELL
+    mkdir -p /home/vagrant/.ssh
+    touch /home/vagrant/.ssh/authorized_keys
+    
+    grep -qxF "$(cat /tmp/ansible_key.pub)" /home/vagrant/.ssh/authorized_keys || \
+      cat /tmp/ansible_key.pub >> /home/vagrant/.ssh/authorized_keys
+
+    chown -R vagrant:vagrant /home/vagrant/.ssh
+    chmod 700 /home/vagrant/.ssh
+    chmod 600 /home/vagrant/.ssh/authorized_keys
+
+    rm -f /tmp/ansible_key.pub
+  SHELL
+end
+
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
 
@@ -29,6 +49,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 1024
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     app.vm.provision "file",
       source: "../.env",
@@ -47,6 +68,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 512
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     app.vm.provision "file",
       source: "consul/consul.hcl",
@@ -70,6 +92,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 512
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     app.vm.provision "shell", path: "scripts/init_nginx_lb.sh"
     app.vm.provision "shell", path: "scripts/setup_nfs_server.sh"
@@ -85,7 +108,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 1024
       vb.linked_clone = true
     end
-
+    provision_ansible_access(app)
     # app.vm.provision "file",
     #   source: "../web/",
     #   destination: "/tmp/web"
@@ -108,6 +131,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 1024
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     # app.vm.provision "file",
     #   source: "../web/",
@@ -135,8 +159,18 @@ Vagrant.configure("2") do |config|
       vb.memory = 2048
       vb.linked_clone = true
     end
-
+    # Provision private SSH key for Ansible
+    app.vm.provision "file",
+      source: "./ssh-keys/ansible_key",
+      destination: "/home/vagrant/.ssh/ansible_key"
+    app.vm.provision "shell", inline: <<-SHELL
+      chown vagrant:vagrant /home/vagrant/.ssh/ansible_key
+      chmod 600 /home/vagrant/.ssh/ansible_key
+      SHELL
     app.vm.provision "shell", path: "scripts/init_cicd.sh"
+    app.vm.provision "file",
+      source: "./ansible",
+      destination: "/home/vagrant/ansible"
   end
 
   # uncomment for prod (removing vagrant user)
