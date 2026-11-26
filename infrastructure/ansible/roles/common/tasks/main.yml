@@ -1,0 +1,11 @@
+---
+- name: Update apt packages metadata and install common packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - git
+      - ca-certificates
+      - unzip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

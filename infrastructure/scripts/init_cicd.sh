@@ -20,13 +20,8 @@ apt-get install -y jenkins
 echo "Launching Jenkins"
 systemctl enable --now jenkins
 
-echo "Setting up Jenkins config"
+echo "Creating Ansible directory"
 mkdir -p /etc/ansible
-cat > /etc/ansible/ansible.cfg << 'EOF'
-[defaults]
-host_key_checking = False
-remote_user = deploy
-EOF
 
 echo "Preparing SSH-directory for Jenkins"
 mkdir -p /var/lib/jenkins/.ssh
