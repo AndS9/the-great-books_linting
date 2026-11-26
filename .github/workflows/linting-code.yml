@@ -9,14 +9,14 @@ on:
     branches: ["main"]
 
 env:
-  python-version: 3.10.12
+  python-version: 3.14
   ruff-version: 0.17.6
   path_to_linter_cfgs: ${{github.workspace}}/.github/workflows/linting_configs
 
 jobs:
   linting:
     name: Source Code linting
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     
     steps:
       - name: Checkout
