@@ -39,6 +39,36 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", path: "scripts/configure_ssh.sh",env: { "SSH_PUB_KEY" => ENV["SSH_PUB_KEY"] }
 
+  # 1. CI-CD (Ansible Control Node & Jenkins)
+  config.vm.define "CI-CD" do |app|
+    app.vm.hostname = "ci-cd"
+    app.vm.network "private_network", ip: "192.168.56.6"
+    app.vm.network "forwarded_port",
+      guest: 8080,
+      host: 8081,
+      host_ip: "127.0.0.1"
+
+    app.vm.provider "virtualbox" do |vb|
+      vb.name = "Vagrant-CI-CD"
+      vb.cpus = 2
+      vb.memory = 2048
+      vb.linked_clone = true
+    end
+    # Provision private SSH key for Ansible
+    app.vm.provision "file",
+      source: "./ssh-keys/ansible_key",
+      destination: "/home/vagrant/.ssh/ansible_key"
+    app.vm.provision "shell", inline: <<-SHELL
+      chown vagrant:vagrant /home/vagrant/.ssh/ansible_key
+      chmod 600 /home/vagrant/.ssh/ansible_key
+      SHELL
+    app.vm.provision "shell", path: "scripts/init_cicd.sh"
+    app.vm.provision "file",
+      source: "./ansible",
+      destination: "/home/vagrant/ansible"
+  end
+
+  # 2. Consul Server (Configured via Ansible role)
   config.vm.define "Consul" do |app|
     app.vm.hostname = "consul"
     app.vm.network "private_network", ip: "192.168.56.5"
@@ -50,14 +80,9 @@ Vagrant.configure("2") do |config|
       vb.linked_clone = true
     end
     provision_ansible_access(app)
-
-    app.vm.provision "file",
-      source: "consul/consul.hcl",
-      destination: "/tmp/consul.hcl"
-
-    app.vm.provision "shell", path: "consul/install.sh"
   end
 
+  # 3. Database Server
   config.vm.define "DB" do |app|
     app.vm.hostname = "db"
     app.vm.network "private_network", ip: "192.168.56.4"
@@ -82,6 +107,7 @@ Vagrant.configure("2") do |config|
     app.vm.provision "shell", path: "scripts/init_db.sh"
   end
 
+  # 4. Application Servers
   config.vm.define "app1" do |app|
     app.vm.hostname = "app1"
     app.vm.network "private_network", ip: "192.168.56.2"
@@ -92,6 +118,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 1024
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     app.vm.provision "file",
       source: "../web/",
@@ -140,6 +167,7 @@ Vagrant.configure("2") do |config|
     app.vm.provision "shell", path: "scripts/setup_nfs_client.sh"
   end
 
+  # 5. Load Balancer & NFS Server
   config.vm.define "LB" do |app|
     app.vm.hostname = "lb"
     app.vm.network "private_network", ip: "192.168.56.10"
@@ -155,6 +183,7 @@ Vagrant.configure("2") do |config|
       vb.memory = 512
       vb.linked_clone = true
     end
+    provision_ansible_access(app)
 
     app.vm.provision "file",
       source: "consul/nginx.conf.ctmpl",
@@ -167,34 +196,6 @@ Vagrant.configure("2") do |config|
     app.vm.provision "shell", path: "scripts/install_consul_client.sh"
     app.vm.provision "shell", path: "scripts/init_nginx_lb.sh"
     app.vm.provision "shell", path: "scripts/setup_nfs_server.sh"
-  end
-
-  config.vm.define "CI-CD" do |app|
-    app.vm.hostname = "ci-cd"
-    app.vm.network "private_network", ip: "192.168.56.6"
-    app.vm.network "forwarded_port",
-      guest: 8080,
-      host: 8081,
-      host_ip: "127.0.0.1"
-
-    app.vm.provider "virtualbox" do |vb|
-      vb.name = "Vagrant-CI-CD"
-      vb.cpus = 2
-      vb.memory = 2048
-      vb.linked_clone = true
-    end
-    # Provision private SSH key for Ansible
-    app.vm.provision "file",
-      source: "./ssh-keys/ansible_key",
-      destination: "/home/vagrant/.ssh/ansible_key"
-    app.vm.provision "shell", inline: <<-SHELL
-      chown vagrant:vagrant /home/vagrant/.ssh/ansible_key
-      chmod 600 /home/vagrant/.ssh/ansible_key
-      SHELL
-    app.vm.provision "shell", path: "scripts/init_cicd.sh"
-    app.vm.provision "file",
-      source: "./ansible",
-      destination: "/home/vagrant/ansible"
   end
 
   # uncomment for prod (removing vagrant user)
