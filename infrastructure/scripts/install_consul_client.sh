@@ -85,21 +85,36 @@ EOF
 EOF
     ;;
   lb)
-    cat > /etc/consul.d/service-nfs.json <<EOF
+    cat > /etc/consul.d/services.json <<EOF
 {
-  "service": {
-    "name": "nfs-server",
-    "id": "nfs-server",
-    "tags": ["file-server", "nfs"],
-    "address": "${NODE_IP}",
-    "port": 2049,
-    "check": {
-      "tcp": "${NODE_IP}:2049",
-      "interval": "10s",
-      "timeout": "2s",
-      "deregister_critical_service_after": "1m"
+  "services": [
+    {
+      "name": "load-balancer",
+      "id": "load-balancer",
+      "tags": ["load-balancer", "nginx"],
+      "address": "${NODE_IP}",
+      "port": 80,
+      "check": {
+        "tcp": "${NODE_IP}:80",
+        "interval": "10s",
+        "timeout": "2s",
+        "deregister_critical_service_after": "1m"
+      }
+    },
+    {
+      "name": "nfs-server",
+      "id": "nfs-server",
+      "tags": ["storage", "nfs"],
+      "address": "${NODE_IP}",
+      "port": 2049,
+      "check": {
+        "tcp": "${NODE_IP}:2049",
+        "interval": "10s",
+        "timeout": "2s",
+        "deregister_critical_service_after": "1m"
+      }
     }
-  }
+  ]
 }
 EOF
     ;;
