@@ -45,80 +45,13 @@ dns_config {
 }
 EOF
 
-case "$(hostname)" in
-  app1|app2)
-    cat > /etc/consul.d/service-web.json <<EOF
-{
-  "service": {
-    "name": "the-great-books-web",
-    "id": "the-great-books-web-$(hostname)",
-    "tags": ["$(hostname)", "vagrant"],
-    "address": "${NODE_IP}",
-    "port": 80,
-    "check": {
-      "http": "http://${NODE_IP}:80/api/health",
-      "interval": "10s",
-      "timeout": "2s",
-      "deregister_critical_service_after": "1m"
-    }
-  }
-}
-EOF
-    ;;
-  db)
-    cat > /etc/consul.d/service-db.json <<EOF
-{
-  "service": {
-    "name": "postgres",
-    "id": "postgres-db",
-    "tags": ["database", "postgresql"],
-    "address": "${NODE_IP}",
-    "port": 5432,
-    "check": {
-      "tcp": "${NODE_IP}:5432",
-      "interval": "10s",
-      "timeout": "2s",
-      "deregister_critical_service_after": "1m"
-    }
-  }
-}
-EOF
-    ;;
-  lb)
-    cat > /etc/consul.d/services.json <<EOF
-{
-  "services": [
-    {
-      "name": "load-balancer",
-      "id": "load-balancer",
-      "tags": ["load-balancer", "nginx"],
-      "address": "${NODE_IP}",
-      "port": 80,
-      "check": {
-        "tcp": "${NODE_IP}:80",
-        "interval": "10s",
-        "timeout": "2s",
-        "deregister_critical_service_after": "1m"
-      }
-    },
-    {
-      "name": "nfs-server",
-      "id": "nfs-server",
-      "tags": ["storage", "nfs"],
-      "address": "${NODE_IP}",
-      "port": 2049,
-      "check": {
-        "tcp": "${NODE_IP}:2049",
-        "interval": "10s",
-        "timeout": "2s",
-        "deregister_critical_service_after": "1m"
-      }
-    }
-  ]
-}
-EOF
-    ;;
-esac
+# Register services from /tmp if provided
+for svc_file in /tmp/service-*.json /tmp/services.json; do
+  if [ -f "$svc_file" ]; then
+    cp "$svc_file" /etc/consul.d/
+    rm -f "$svc_file"
+  fi
+done
 
 chown -R consul:consul /etc/consul.d /var/lib/consul
 

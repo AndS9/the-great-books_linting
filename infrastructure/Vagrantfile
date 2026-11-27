@@ -74,6 +74,10 @@ Vagrant.configure("2") do |config|
       source: "../.env",
       destination: "/tmp/.env"
 
+    app.vm.provision "file",
+      source: "consul/service-db.json",
+      destination: "/tmp/service-db.json"
+
     app.vm.provision "shell", path: "scripts/install_consul_client.sh"
     app.vm.provision "shell", path: "scripts/init_db.sh"
   end
@@ -96,6 +100,10 @@ Vagrant.configure("2") do |config|
     app.vm.provision "file",
       source: "../.env",
       destination: "/tmp/.env"
+
+    app.vm.provision "file",
+      source: "consul/service-web.json",
+      destination: "/tmp/service-web.json"
 
     app.vm.provision "shell", path: "scripts/install_consul_client.sh"
     app.vm.provision "shell", path: "scripts/init_web.sh"
@@ -122,6 +130,10 @@ Vagrant.configure("2") do |config|
       source: "../.env",
       destination: "/tmp/.env"
 
+    app.vm.provision "file",
+      source: "consul/service-web.json",
+      destination: "/tmp/service-web.json"
+
     app.vm.provision "shell", path: "scripts/install_consul_client.sh"
     app.vm.provision "shell", path: "scripts/configure_consul_resolver.sh"
     app.vm.provision "shell", path: "scripts/init_web.sh"
@@ -147,6 +159,10 @@ Vagrant.configure("2") do |config|
     app.vm.provision "file",
       source: "consul/nginx.conf.ctmpl",
       destination: "/tmp/nginx.conf.ctmpl"
+
+    app.vm.provision "file",
+      source: "consul/service-lb.json",
+      destination: "/tmp/services.json"
 
     app.vm.provision "shell", path: "scripts/install_consul_client.sh"
     app.vm.provision "shell", path: "scripts/init_nginx_lb.sh"
