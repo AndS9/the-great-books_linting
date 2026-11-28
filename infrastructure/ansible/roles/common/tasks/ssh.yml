@@ -1,0 +1,13 @@
+---
+- name: Add deploy user and add it to sudo
+  ansible.builtin.user: 
+        name: deploy
+        state: present
+        createhome: yes
+        group: sudo
+
+- name: Add deploy user to sudoers
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    line: 'deploy ALL=(ALL:ALL) NOPASSWD:ALL'
+    validate: 'visudo -cf %s'

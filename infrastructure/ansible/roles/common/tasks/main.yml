@@ -1,13 +1,9 @@
 ---
-- name: Update apt packages metadata and install common packages
-  ansible.builtin.apt:
-    name:
-      - curl
-      - git
-      - ca-certificates
-      - unzip
-      - iptables
-      - iptables-persistent
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
+- name: Install packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Configure firewall  
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Configure SSH
+  ansible.builtin.import_tasks: ssh.yml
